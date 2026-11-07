@@ -11,14 +11,14 @@ struct CategoryMenuItems: View {
         let config = store.categories
         ForEach(config.tops) { top in
             Menu(top.name) {
-                Button("\(top.name) (allgemein)") { assign(top.id) }
+                Button(L("\(top.name) (allgemein)", "\(top.name) (general)")) { assign(top.id) }
                 ForEach(config.children(of: top.id)) { child in
                     Button(child.name) { assign(child.id) }
                 }
             }
         }
         Divider()
-        Button("Ohne Kategorie") { assign(nil) }
+        Button(L("Ohne Kategorie", "No category")) { assign(nil) }
     }
 
     private func assign(_ id: UUID?) { store.updateCategories { $0.assign(name: name, isSite: isSite, to: id) } }
@@ -34,16 +34,16 @@ struct CategoriesView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                PageHeader(title: "Kategorien", subtitle: "Oberkategorien bestimmen, was als Arbeit, Neutral oder Ablenkung zählt. Unterkategorien sortieren feiner.")
+                PageHeader(title: L("Kategorien", "Categories"), subtitle: L("Oberkategorien bestimmen, was als Arbeit, Neutral oder Ablenkung zählt. Unterkategorien sortieren feiner.", "Top categories decide what counts as work, neutral or distraction. Subcategories sort in more detail."))
                 ForEach(store.categories.tops) { top in
                     GroupCard(store: store, top: top)
                 }
                 HStack(spacing: 8) {
-                    TextField("Neue Oberkategorie, z. B. Lernen", text: $newTop).textFieldStyle(.plain).font(.system(size: 13))
+                    TextField(L("Neue Oberkategorie, z. B. Lernen", "New top category, e.g. Learning"), text: $newTop).textFieldStyle(.plain).font(.system(size: 13))
                         .padding(.horizontal, 12).padding(.vertical, 9)
                         .background(Arc.muted, in: RoundedRectangle(cornerRadius: Arc.controlRadius, style: .continuous))
                         .onSubmit(addTop)
-                    Button("Hinzufügen", action: addTop).buttonStyle(ArcButtonStyle(kind: .primary))
+                    Button(L("Hinzufügen", "Add"), action: addTop).buttonStyle(ArcButtonStyle(kind: .primary))
                         .disabled(newTop.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
                 TitleRulesCard(store: store)
@@ -72,15 +72,15 @@ struct CategoriesView: View {
     private var assignments: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Text("ZUORDNUNG · LETZTE 30 TAGE").font(.system(size: 12.5, weight: .semibold)).foregroundStyle(Arc.secondary)
+                Text(L("ZUORDNUNG · LETZTE 30 TAGE", "ASSIGNMENT · LAST 30 DAYS")).font(.system(size: 12.5, weight: .semibold)).foregroundStyle(Arc.secondary)
                 Spacer()
-                Toggle("Nur ohne Kategorie", isOn: $onlyOpen).toggleStyle(.switch).controlSize(.mini).font(.system(size: 12))
+                Toggle(L("Nur ohne Kategorie", "Only without category"), isOn: $onlyOpen).toggleStyle(.switch).controlSize(.mini).font(.system(size: 12))
             }
-            TextField("Suchen", text: $search).textFieldStyle(.plain).font(.system(size: 13))
+            TextField(L("Suchen", "Search"), text: $search).textFieldStyle(.plain).font(.system(size: 13))
                 .padding(.horizontal, 12).padding(.vertical, 8)
                 .background(Arc.muted, in: RoundedRectangle(cornerRadius: Arc.controlRadius, style: .continuous))
             if filtered.isEmpty {
-                Text(onlyOpen ? "Alles ist einsortiert." : "Nichts gefunden.").font(.system(size: 13)).foregroundStyle(Arc.secondary).padding(.vertical, 8)
+                Text(onlyOpen ? L("Alles ist einsortiert.", "Everything is sorted.") : L("Nichts gefunden.", "Nothing found.")).font(.system(size: 13)).foregroundStyle(Arc.secondary).padding(.vertical, 8)
             }
             ForEach(filtered.prefix(60)) { item in
                 HStack(spacing: 11) {
@@ -101,7 +101,7 @@ struct CategoriesView: View {
                     .menuStyle(.borderlessButton).menuIndicator(.visible).fixedSize()
                 }.padding(.vertical, 3)
             }
-            if filtered.count > 60 { Text("Weitere über die Suche finden.").font(.system(size: 11.5)).foregroundStyle(Arc.tertiary) }
+            if filtered.count > 60 { Text(L("Weitere über die Suche finden.", "Use search to find more.")).font(.system(size: 11.5)).foregroundStyle(Arc.tertiary) }
         }.arcCard()
     }
 }
@@ -121,13 +121,13 @@ private struct GroupCard: View {
                 Circle().fill(DashboardView.color(top.rating)).frame(width: 10, height: 10)
                 TextField("Name", text: $name).textFieldStyle(.plain).font(.system(size: 15, weight: .semibold))
                     .onSubmit { store.updateCategories { $0.rename(top.id, to: name.trimmingCharacters(in: .whitespaces)) } }
-                Text("\(count) zugeordnet").font(.system(size: 11.5)).foregroundStyle(Arc.tertiary).fixedSize()
+                Text(L("\(count) zugeordnet", "\(count) assigned")).font(.system(size: 11.5)).foregroundStyle(Arc.tertiary).fixedSize()
                 Button { confirmDelete = true } label: { Image(systemName: "trash") }
-                    .buttonStyle(.borderless).foregroundStyle(Arc.tertiary).help("Oberkategorie löschen")
+                    .buttonStyle(.borderless).foregroundStyle(Arc.tertiary).help(L("Oberkategorie löschen", "Delete top category"))
             }
             HStack(spacing: 10) {
-                Text("Zählt als").font(.system(size: 12)).foregroundStyle(Arc.secondary)
-                PillPicker(options: UsageCategory.allCases.map { ($0, $0.rawValue) },
+                Text(L("Zählt als", "Counts as")).font(.system(size: 12)).foregroundStyle(Arc.secondary)
+                PillPicker(options: UsageCategory.allCases.map { ($0, $0.title) },
                            selection: Binding(get: { top.rating }, set: { rating in store.updateCategories { $0.setRating(top.id, rating) } }))
                     .frame(maxWidth: 330)
             }
@@ -137,12 +137,12 @@ private struct GroupCard: View {
                         Text(child.name).font(.system(size: 12.5, weight: .medium))
                         Button { store.updateCategories { $0.delete(child.id) } } label: {
                             Image(systemName: "xmark").font(.system(size: 8.5, weight: .bold))
-                        }.buttonStyle(.plain).foregroundStyle(Arc.tertiary).help("Unterkategorie löschen, Einträge wandern nach \(top.name)")
+                        }.buttonStyle(.plain).foregroundStyle(Arc.tertiary).help(L("Unterkategorie löschen, Einträge wandern nach \(top.name)", "Delete subcategory, its items move to \(top.name)"))
                     }
                     .padding(.horizontal, 11).padding(.vertical, 6)
                     .background(Arc.muted, in: Capsule())
                 }
-                TextField("+ Unterkategorie", text: $newChild).textFieldStyle(.plain).font(.system(size: 12.5))
+                TextField(L("+ Unterkategorie", "+ Subcategory"), text: $newChild).textFieldStyle(.plain).font(.system(size: 12.5))
                     .frame(width: 130).padding(.horizontal, 11).padding(.vertical, 6)
                     .overlay(Capsule().strokeBorder(Arc.border, style: StrokeStyle(lineWidth: 1, dash: [3, 3])))
                     .onSubmit {
@@ -156,9 +156,9 @@ private struct GroupCard: View {
         .arcCard()
         .onAppear { name = top.name }
         .onChange(of: top.name) { _, value in name = value }
-        .confirmationDialog("\(top.name) löschen?", isPresented: $confirmDelete, titleVisibility: .visible) {
-            Button("Löschen", role: .destructive) { store.updateCategories { $0.delete(top.id) } }
-        } message: { Text("Unterkategorien gehen mit. Zugeordnete Apps und Websites stehen danach ohne Kategorie da.") }
+        .confirmationDialog(L("\(top.name) löschen?", "Delete \(top.name)?"), isPresented: $confirmDelete, titleVisibility: .visible) {
+            Button(L("Löschen", "Delete"), role: .destructive) { store.updateCategories { $0.delete(top.id) } }
+        } message: { Text(L("Unterkategorien gehen mit. Zugeordnete Apps und Websites stehen danach ohne Kategorie da.", "Its subcategories go too. Assigned apps and websites end up without a category.")) }
     }
 }
 
@@ -171,12 +171,12 @@ struct CategoryPicker: View {
         Menu {
             ForEach(store.categories.tops) { top in
                 Menu(top.name) {
-                    Button("\(top.name) (allgemein)") { selection = top.id }
+                    Button(L("\(top.name) (allgemein)", "\(top.name) (general)")) { selection = top.id }
                     ForEach(store.categories.children(of: top.id)) { child in Button(child.name) { selection = child.id } }
                 }
             }
         } label: {
-            Text(selection == nil ? "Kategorie wählen" : store.categories.path(selection)).font(.system(size: 12.5, weight: .medium))
+            Text(selection == nil ? L("Kategorie wählen", "Choose category") : store.categories.path(selection)).font(.system(size: 12.5, weight: .medium))
         }.menuStyle(.borderlessButton).fixedSize()
     }
 }
@@ -190,42 +190,42 @@ private struct TitleRulesCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            CardTitle(text: "REGELN NACH SEITENTITEL")
-            Text("Sortiert einzelne Seiten anders als ihre Website. Beispiel: Auf youtube.com zählt alles mit „Tutorial“ im Titel als Recherche statt Entertainment.")
+            CardTitle(text: L("REGELN NACH SEITENTITEL", "RULES BY PAGE TITLE"))
+            Text(L("Sortiert einzelne Seiten anders als ihre Website. Beispiel: Auf youtube.com zählt alles mit „Tutorial“ im Titel als Recherche statt Entertainment.", "Sorts single pages differently from their website. Example: on youtube.com, anything with “Tutorial” in the title counts as Research instead of Entertainment."))
                 .font(.system(size: 12.5)).foregroundStyle(Arc.secondary).fixedSize(horizontal: false, vertical: true)
             if !trackTitles {
                 HStack(spacing: 10) {
                     Image(systemName: "exclamationmark.circle").foregroundStyle(Arc.amber)
-                    Text("Die Seitentitel-Erfassung ist aus. Regeln greifen erst für Zeit, die mit Titeln erfasst wurde.")
+                    Text(L("Die Seitentitel-Erfassung ist aus. Regeln greifen erst für Zeit, die mit Titeln erfasst wurde.", "Page title tracking is off. Rules only apply to time tracked with titles."))
                         .font(.system(size: 12)).foregroundStyle(Arc.secondary).fixedSize(horizontal: false, vertical: true)
                     Spacer(minLength: 8)
-                    Button("Einschalten") { trackTitles = true }.buttonStyle(ArcButtonStyle(kind: .quiet))
+                    Button(L("Einschalten", "Turn On")) { trackTitles = true }.buttonStyle(ArcButtonStyle(kind: .quiet))
                 }
                 .padding(10).background(Arc.amber.opacity(0.1), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
             }
             ForEach(store.categories.titleRules) { rule in
                 HStack(spacing: 6) {
-                    Text(rule.domain ?? "Alle Websites").font(.system(size: 12.5, weight: .semibold))
-                    Text("· Titel enthält").font(.system(size: 12.5)).foregroundStyle(Arc.secondary)
-                    Text("„\(rule.keyword)“").font(.system(size: 12.5, weight: .semibold))
+                    Text(rule.domain ?? L("Alle Websites", "All websites")).font(.system(size: 12.5, weight: .semibold))
+                    Text(L("· Titel enthält", "· title contains")).font(.system(size: 12.5)).foregroundStyle(Arc.secondary)
+                    Text(L("„\(rule.keyword)“", "“\(rule.keyword)”")).font(.system(size: 12.5, weight: .semibold))
                     Image(systemName: "arrow.right").font(.system(size: 10, weight: .semibold)).foregroundStyle(Arc.tertiary)
                     Text(store.categories.path(rule.groupID)).font(.system(size: 12.5, weight: .medium))
                     Spacer()
                     Button { store.updateCategories { config in config.titleRules.removeAll { $0.id == rule.id } } } label: {
                         Image(systemName: "trash")
-                    }.buttonStyle(.borderless).foregroundStyle(Arc.tertiary).help("Regel löschen")
+                    }.buttonStyle(.borderless).foregroundStyle(Arc.tertiary).help(L("Regel löschen", "Delete rule"))
                 }
                 .padding(.horizontal, 12).padding(.vertical, 9)
                 .background(Arc.muted.opacity(0.7), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
             }
             HStack(spacing: 8) {
-                field("youtube.com (leer = alle)", text: $domain).frame(width: 190)
-                field("Stichwort, z. B. Tutorial", text: $keyword)
+                field(L("youtube.com (leer = alle)", "youtube.com (empty = all)"), text: $domain).frame(width: 190)
+                field(L("Stichwort, z. B. Tutorial", "Keyword, e.g. Tutorial"), text: $keyword)
                 CategoryPicker(store: store, selection: $target)
-                Button("Regel anlegen", action: add).buttonStyle(ArcButtonStyle(kind: .primary))
+                Button(L("Regel anlegen", "Add Rule"), action: add).buttonStyle(ArcButtonStyle(kind: .primary))
                     .disabled(keyword.trimmingCharacters(in: .whitespaces).isEmpty || target == nil || domainInvalid)
             }
-            if domainInvalid { Text("Das ist keine gültige Domain.").font(.system(size: 11.5)).foregroundStyle(Arc.distraction) }
+            if domainInvalid { Text(L("Das ist keine gültige Domain.", "That is not a valid domain.")).font(.system(size: 11.5)).foregroundStyle(Arc.distraction) }
         }.arcCard()
     }
 

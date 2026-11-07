@@ -56,7 +56,7 @@ private struct Sidebar: View {
             SettingsLink {
                 HStack(spacing: 9) {
                     Image(systemName: "gearshape").frame(width: 18)
-                    Text("Einstellungen").lineLimit(1).fixedSize()
+                    Text(L("Einstellungen", "Settings")).lineLimit(1).fixedSize()
                     Spacer()
                 }
                 .font(.system(size: 12.5)).foregroundStyle(Arc.secondary)
@@ -81,7 +81,7 @@ private struct SidebarRow: View {
         Button(action: action) {
             HStack(spacing: 9) {
                 Image(systemName: page.symbol).frame(width: 18)
-                Text(page.rawValue)
+                Text(page.title)
                 Spacer()
             }
             .font(.system(size: 13, weight: selected ? .medium : .regular))
@@ -101,12 +101,12 @@ private struct ThemeToggle: View {
         Button { withAnimation(.easeInOut(duration: 0.2)) { theme = theme.next } } label: {
             HStack(spacing: 9) {
                 Image(systemName: theme.symbol).frame(width: 18)
-                Text("Design: \(theme.rawValue)")
+                Text(L("Design: \(theme.title)", "Theme: \(theme.title)"))
                 Spacer()
             }
             .font(.system(size: 12.5)).foregroundStyle(Arc.secondary)
             .padding(.horizontal, 10).padding(.vertical, 8).contentShape(Rectangle())
-        }.buttonStyle(.plain).help("Zwischen System, Hell und Dunkel wechseln")
+        }.buttonStyle(.plain).help(L("Zwischen System, Hell und Dunkel wechseln", "Switch between System, Light and Dark"))
     }
 }
 
@@ -115,7 +115,7 @@ private struct SidebarStatus: View {
 
     private var title: String {
         if model.isHard { return "Hard Mode" }
-        return model.activeSessions.isEmpty ? "Bereit" : "Fokus läuft"
+        return model.activeSessions.isEmpty ? L("Bereit", "Ready") : L("Fokus läuft", "Focusing")
     }
     private var color: Color {
         if model.isHard { return Arc.rose }

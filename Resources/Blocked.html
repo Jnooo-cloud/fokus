@@ -125,7 +125,19 @@ button:focus-visible { outline: 2px solid var(--soft); outline-offset: 2px; }
     ["Start where you are. Use what you have. Do what you can.", "Arthur Ashe"],
     ["The present moment is filled with joy and happiness. If you are attentive, you will see it.", "Thich Nhat Hanh"]
   ];
-  const headlines = ["Gerade gesperrt.", "Das kann warten.", "Zurück zum Wesentlichen.", "Nicht jetzt."];
+  const english = new URLSearchParams(location.search).get("lang") === "en";
+  const headlines = english ? ["Blocked for now.", "This can wait.", "Back to what matters.", "Not right now."]
+                            : ["Gerade gesperrt.", "Das kann warten.", "Zurück zum Wesentlichen.", "Nicht jetzt."];
+  if (english) {
+    document.documentElement.lang = "en";
+    document.title = "Blocked · Fokus";
+    const [inhale, exhale] = document.querySelectorAll(".cue span");
+    inhale.textContent = "Breathe in";
+    exhale.textContent = "Breathe out";
+    document.getElementById("another").textContent = "Another thought";
+    document.querySelector(".hint").textContent = "Really need it? Open Fokus → Unlock, then go back.";
+    document.getElementById("lede").textContent = "This page isn’t going anywhere. Back to what you meant to do.";
+  }
   const pick = (list, avoid) => {
     let index;
     do { index = Math.floor(Math.random() * list.length); } while (list.length > 1 && index === avoid);
@@ -148,7 +160,7 @@ button:focus-visible { outline: 2px solid var(--soft); outline-offset: 2px; }
     const lede = document.getElementById("lede");
     const name = document.createElement("strong");
     name.textContent = site;
-    lede.replaceChildren(name, " läuft dir nicht weg. Zurück zu dem, was du eigentlich tun wolltest.");
+    lede.replaceChildren(name, english ? " isn’t going anywhere. Back to what you meant to do." : " läuft dir nicht weg. Zurück zu dem, was du eigentlich tun wolltest.");
   }
 
   const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;

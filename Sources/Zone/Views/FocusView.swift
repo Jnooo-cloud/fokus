@@ -9,9 +9,9 @@ struct FocusView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                PageHeader(title: "Fokus", subtitle: model.activeSessions.isEmpty
-                           ? "Eine Sitzung sperrt deine Liste für eine feste Zeit. Danach ist alles wieder offen."
-                           : "Läuft gerade. Gesperrtes leitet Chrome auf eine Fokus-Seite um.")
+                PageHeader(title: L("Fokus", "Focus"), subtitle: model.activeSessions.isEmpty
+                           ? L("Eine Sitzung sperrt deine Liste für eine feste Zeit. Danach ist alles wieder offen.", "A session blocks your list for a set time. After that everything is open again.")
+                           : L("Läuft gerade. Gesperrtes leitet Chrome auf eine Fokus-Seite um.", "Running. Blocked pages redirect to a Fokus page."))
                 BlockingNotice(model: model)
                 ForEach(model.activeSessions) { session in
                     RunningSessionCard(session: session, model: model)
@@ -21,7 +21,7 @@ struct FocusView: View {
                 } else if model.activeSessions.isEmpty {
                     StartSessionCard(model: model)
                 } else if !model.isHard {
-                    DisclosureGroup("Weitere Sitzung dazu starten", isExpanded: $showAnother) {
+                    DisclosureGroup(L("Weitere Sitzung dazu starten", "Start another session"), isExpanded: $showAnother) {
                         StartSessionCard(model: model, embedded: true).padding(.top, 10)
                     }.font(.system(size: 13, weight: .medium)).arcCard()
                 }
@@ -38,16 +38,16 @@ private enum Strictness: String, CaseIterable, Identifiable {
     var id: Self { self }
     var title: String {
         switch self {
-        case .flexible: "Flexibel"
-        case .locked: "Durchziehen"
+        case .flexible: L("Flexibel", "Flexible")
+        case .locked: L("Durchziehen", "Commit")
         case .hard: "Hard Mode"
         }
     }
     var detail: String {
         switch self {
-        case .flexible: "Jederzeit beenden"
-        case .locked: "Kein Beenden, Entsperren geht"
-        case .hard: "Kein Beenden, kein Entsperren"
+        case .flexible: L("Jederzeit beenden", "End anytime")
+        case .locked: L("Kein Beenden, Entsperren geht", "No ending, unlocking allowed")
+        case .hard: L("Kein Beenden, kein Entsperren", "No ending, no unlocking")
         }
     }
     var symbol: String {
@@ -75,9 +75,9 @@ private struct StartSessionCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
-            step(1, "Wie lange?") {
+            step(1, L("Wie lange?", "How long?")) {
                 VStack(alignment: .leading, spacing: 10) {
-                    PillPicker(options: Self.durations.map { ($0, MenuFormat.duration($0)) } + [(Self.customTag, "Eigene")],
+                    PillPicker(options: Self.durations.map { ($0, MenuFormat.duration($0)) } + [(Self.customTag, L("Eigene", "Custom"))],
                                selection: Binding(get: { custom ? Self.customTag : model.quickMinutes },
                                                   set: { value in
                                                       custom = value == Self.customTag
@@ -86,7 +86,7 @@ private struct StartSessionCard: View {
                     if custom { customDuration }
                 }
             }
-            step(2, "Was wird gesperrt?") {
+            step(2, L("Was wird gesperrt?", "What gets blocked?")) {
                 VStack(alignment: .leading, spacing: 8) {
                     ChipRow(chips: model.availableLists.map { (Optional($0.id.uuidString), $0.name) },
                             selection: Binding(get: { model.selectedListID?.uuidString },
@@ -96,7 +96,7 @@ private struct StartSessionCard: View {
                     }
                 }
             }
-            step(3, "Wie streng?") {
+            step(3, L("Wie streng?", "How strict?")) {
                 HStack(spacing: 8) {
                     ForEach(Strictness.allCases) { option in
                         StrictnessTile(option: option, selected: strictness == option) { strictness = option }
@@ -107,11 +107,11 @@ private struct StartSessionCard: View {
                 Text(summary).font(.system(size: 13)).foregroundStyle(Arc.ink.opacity(0.85)).fixedSize(horizontal: false, vertical: true)
                 if needsBrowser { BrowserSetupPrompt(model: model) }
                 if strictness == .hard {
-                    HoldToConfirm(title: "2 Sek halten: Hard Mode bis \(end.formatted(date: .omitted, time: .shortened))", duration: 2,
+                    HoldToConfirm(title: L("2 Sek halten: Hard Mode bis \(end.formatted(date: .omitted, time: .shortened))", "Hold 2 s: Hard Mode until \(end.formatted(date: .omitted, time: .shortened))"), duration: 2,
                                   tint: AnyShapeStyle(Arc.distraction.opacity(0.55))) { start() }
                         .disabled(list == nil || needsBrowser || !validMinutes)
                 } else {
-                    Button("Fokus bis \(end.formatted(date: .omitted, time: .shortened)) starten") {
+                    Button(L("Fokus bis \(end.formatted(date: .omitted, time: .shortened)) starten", "Focus until \(end.formatted(date: .omitted, time: .shortened))")) {
                         if list?.apps.isEmpty == false { confirmApps = true } else { start() }
                     }
                     .buttonStyle(ArcButtonStyle(kind: .primary, wide: true))
@@ -120,9 +120,9 @@ private struct StartSessionCard: View {
             }
         }
         .modifier(OptionalCard(enabled: !embedded))
-        .confirmationDialog("Gewählte Apps schließen und starten?", isPresented: $confirmApps, titleVisibility: .visible) {
-            Button("Starten") { start() }
-        } message: { Text("Speichere vorher. Apps aus der Liste werden sofort geschlossen.") }
+        .confirmationDialog(L("Gewählte Apps schließen und starten?", "Quit the selected apps and start?"), isPresented: $confirmApps, titleVisibility: .visible) {
+            Button(L("Starten", "Start")) { start() }
+        } message: { Text(L("Speichere vorher. Apps aus der Liste werden sofort geschlossen.", "Save first. Apps on the list close right away.")) }
         .onAppear { custom = !Self.durations.contains(model.quickMinutes) }
     }
 
@@ -135,28 +135,28 @@ private struct StartSessionCard: View {
                 .textFieldStyle(.plain).font(.system(size: 15, weight: .semibold)).monospacedDigit()
                 .multilineTextAlignment(.center).frame(width: 64).padding(.vertical, 8)
                 .background(Arc.muted, in: RoundedRectangle(cornerRadius: Arc.controlRadius, style: .continuous))
-            Text("Minuten").font(.system(size: 13)).foregroundStyle(Arc.secondary)
-            Text("oder bis").font(.system(size: 13)).foregroundStyle(Arc.tertiary).padding(.leading, 6)
-            DatePicker("Bis", selection: Binding(get: { end }, set: { date in
+            Text(L("Minuten", "minutes")).font(.system(size: 13)).foregroundStyle(Arc.secondary)
+            Text(L("oder bis", "or until")).font(.system(size: 13)).foregroundStyle(Arc.tertiary).padding(.leading, 6)
+            DatePicker(L("Bis", "Until"), selection: Binding(get: { end }, set: { date in
                 // A time earlier than now means tomorrow.
                 var target = date
                 if target <= Date() { target = target.addingTimeInterval(86400) }
                 model.quickMinutes = max(1, min(1440, Int((target.timeIntervalSince(Date()) / 60).rounded())))
             }), displayedComponents: .hourAndMinute).labelsHidden().fixedSize()
             Spacer()
-            if !validMinutes { Text("1 bis 1.440 Min").font(.system(size: 11.5)).foregroundStyle(Arc.distraction) }
+            if !validMinutes { Text(L("1 bis 1.440 Min", "1 to 1,440 min")).font(.system(size: 11.5)).foregroundStyle(Arc.distraction) }
         }
     }
 
     private var summary: String {
-        guard validMinutes else { return "Gib eine Dauer zwischen 1 Minute und 24 Stunden ein." }
-        guard let list else { return "Wähle eine Liste." }
-        let what = list.blocksEverything ? "alle Websites außer deinen Ausnahmen" : Self.contents(of: list)
+        guard validMinutes else { return L("Gib eine Dauer zwischen 1 Minute und 24 Stunden ein.", "Enter a duration between 1 minute and 24 hours.") }
+        guard let list else { return L("Wähle eine Liste.", "Choose a list.") }
+        let what = list.blocksEverything ? L("alle Websites außer deinen Ausnahmen", "all websites except your exceptions") : Self.contents(of: list)
         let until = end.formatted(date: .omitted, time: .shortened)
         switch strictness {
-        case .flexible: return "Bis \(until) ist \(what) gesperrt. Du kannst jederzeit beenden oder kurz entsperren."
-        case .locked: return "Bis \(until) ist \(what) gesperrt. Beenden geht nicht, kurz entsperren schon."
-        case .hard: return "Bis \(until) ist \(what) gesperrt. Kein Beenden, kein Entsperren. Nur ein Notausgang mit 5 Min Wartezeit."
+        case .flexible: return L("Bis \(until) ist \(what) gesperrt. Du kannst jederzeit beenden oder kurz entsperren.", "Blocked until \(until): \(what). You can end anytime or unlock briefly.")
+        case .locked: return L("Bis \(until) ist \(what) gesperrt. Beenden geht nicht, kurz entsperren schon.", "Blocked until \(until): \(what). You can’t end it, but you can unlock briefly.")
+        case .hard: return L("Bis \(until) ist \(what) gesperrt. Kein Beenden, kein Entsperren. Nur ein Notausgang mit 5 Min Wartezeit.", "Blocked until \(until): \(what). No ending, no unlocking. Only an emergency exit after a 5 min wait.")
         }
     }
 
@@ -170,9 +170,9 @@ private struct StartSessionCard: View {
     }
 
     static func contents(of list: BlockList) -> String {
-        let sites = list.blocksEverything ? ["alle Websites"] : list.domains
+        let sites = list.blocksEverything ? [L("alle Websites", "all websites")] : list.domains
         let all = sites + list.apps.map(\.name)
-        return all.count <= 4 ? all.joined(separator: ", ") : all.prefix(3).joined(separator: ", ") + " und \(all.count - 3) weitere"
+        return all.count <= 4 ? all.joined(separator: ", ") : all.prefix(3).joined(separator: ", ") + L(" und \(all.count - 3) weitere", " and \(all.count - 3) more")
     }
 
     private func step<Content: View>(_ number: Int, _ title: String, @ViewBuilder content: () -> Content) -> some View {
@@ -224,8 +224,8 @@ private struct RunningSessionCard: View {
     private var hard: Bool { model.isHard && model.document.hardMode?.sessionID == session.id }
     private var badge: (String, Color) {
         if hard { return ("Hard Mode", Arc.distraction) }
-        if session.scheduleID != nil { return ("Zeitplan", Arc.work) }
-        return session.options.mode == .locked ? ("Durchziehen", Arc.work) : ("Flexibel", Arc.green)
+        if session.scheduleID != nil { return (L("Zeitplan", "Schedule"), Arc.work) }
+        return session.options.mode == .locked ? (L("Durchziehen", "Commit"), Arc.work) : (L("Flexibel", "Flexible"), Arc.green)
     }
     private var fraction: Double {
         let total = session.endsAt.timeIntervalSince(session.startsAt)
@@ -243,10 +243,10 @@ private struct RunningSessionCard: View {
             HStack(spacing: 22) {
                 CountdownRing(fraction: fraction, label: Countdown.text(until: session.endsAt, now: model.now), size: 128)
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Gesperrt bis \(session.endsAt.formatted(date: .omitted, time: .shortened))").font(.system(size: 17, weight: .semibold))
+                    Text(L("Gesperrt bis \(session.endsAt.formatted(date: .omitted, time: .shortened))", "Blocked until \(session.endsAt.formatted(date: .omitted, time: .shortened))")).font(.system(size: 17, weight: .semibold))
                     Text(StartSessionCard.contents(of: session.blockList)).font(.system(size: 12.5)).foregroundStyle(Arc.secondary).lineLimit(3)
                     if !model.activeUnlocks.isEmpty {
-                        Text("Gerade frei: \(model.activeUnlocks.map { $0.domain ?? "alles" }.joined(separator: ", "))")
+                        Text(L("Gerade frei: ", "Free right now: ") + model.activeUnlocks.map { $0.domain ?? L("alles", "everything") }.joined(separator: ", "))
                             .font(.system(size: 12)).foregroundStyle(Arc.green)
                     }
                 }
@@ -255,21 +255,21 @@ private struct RunningSessionCard: View {
                 HardModeCard(model: model).padding(.horizontal, -18).padding(.bottom, -18)
             } else {
                 HStack(spacing: 8) {
-                    Button("Kurz entsperren…") { model.page = .unlock }.buttonStyle(ArcButtonStyle(kind: .secondary, wide: true))
+                    Button(L("Kurz entsperren…", "Unlock briefly…")) { model.page = .unlock }.buttonStyle(ArcButtonStyle(kind: .secondary, wide: true))
                         .disabled(model.isHard)
                     if !session.isStrict {
-                        Button("Beenden") { confirmEnd = true }.buttonStyle(ArcButtonStyle(kind: .quiet))
+                        Button(L("Beenden", "End")) { confirmEnd = true }.buttonStyle(ArcButtonStyle(kind: .quiet))
                     }
                 }
-                Text(session.isStrict ? "Diese Sitzung läuft bis zum Ende. Kurz entsperren geht mit Wartezeit."
-                                      : "Beenden gibt sofort alles frei. Kurz entsperren gibt nur eine Seite für ein paar Minuten frei.")
+                Text(session.isStrict ? L("Diese Sitzung läuft bis zum Ende. Kurz entsperren geht mit Wartezeit.", "This session runs to the end. Brief unlocks come with a wait.")
+                                      : L("Beenden gibt sofort alles frei. Kurz entsperren gibt nur eine Seite für ein paar Minuten frei.", "Ending frees everything at once. A brief unlock frees one site for a few minutes."))
                     .font(.system(size: 11.5)).foregroundStyle(Arc.tertiary)
             }
         }
         .arcCard(padding: 20)
-        .confirmationDialog("Sitzung beenden?", isPresented: $confirmEnd, titleVisibility: .visible) {
-            Button("Beenden", role: .destructive) { model.stop(session) }
-        } message: { Text("Alles aus dieser Sitzung ist dann sofort wieder offen.") }
+        .confirmationDialog(L("Sitzung beenden?", "End session?"), isPresented: $confirmEnd, titleVisibility: .visible) {
+            Button(L("Beenden", "End"), role: .destructive) { model.stop(session) }
+        } message: { Text(L("Alles aus dieser Sitzung ist dann sofort wieder offen.", "Everything in this session opens up again right away.")) }
     }
 }
 
@@ -283,8 +283,8 @@ private struct NextScheduleRow: View {
             HStack(spacing: 12) {
                 Image(systemName: "calendar").foregroundStyle(Arc.secondary)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Nächster Zeitplan: \(name)").font(.system(size: 13, weight: .medium))
-                    Text("Startet von selbst \(start.formatted(.dateTime.weekday(.wide).hour().minute()))")
+                    Text(L("Nächster Zeitplan: \(name)", "Next schedule: \(name)")).font(.system(size: 13, weight: .medium))
+                    Text(L("Startet von selbst \(start.formatted(.dateTime.weekday(.wide).hour().minute().locale(AppLanguage.locale)))", "Starts on its own \(start.formatted(.dateTime.weekday(.wide).hour().minute().locale(AppLanguage.locale)))"))
                         .font(.system(size: 12)).foregroundStyle(Arc.secondary)
                 }
                 Spacer()
@@ -303,11 +303,11 @@ struct FirstListPrompt: View {
         VStack(spacing: 12) {
             Image(systemName: "hand.raised").font(.system(size: compact ? 28 : 40, weight: .light))
                 .foregroundStyle(.secondary).accessibilityHidden(true)
-            Text("Wähle, was gesperrt wird").font(compact ? .headline : .title2.weight(.semibold))
-            Text("Trag Websites und Apps in eine Sperrliste ein und starte eine Sitzung, wenn du dich konzentrieren willst.")
+            Text(L("Wähle, was gesperrt wird", "Choose what to block")).font(compact ? .headline : .title2.weight(.semibold))
+            Text(L("Trag Websites und Apps in eine Sperrliste ein und starte eine Sitzung, wenn du dich konzentrieren willst.", "Put websites and apps on a block list, then start a session whenever you want to focus."))
                 .foregroundStyle(.secondary).multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
-            Button("Sperrliste anlegen…", systemImage: "plus") {
+            Button(L("Sperrliste anlegen…", "Create a Block List…"), systemImage: "plus") {
                 openWindow.openMain()
                 model.newList()
             }.buttonStyle(.borderedProminent).padding(.top, 4)

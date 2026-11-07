@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import ZoneCore
 
 @main
 struct ZoneApp: App {
@@ -19,7 +20,7 @@ struct ZoneApp: App {
             ZoneCommands(model: model)
             SidebarCommands()
             CommandGroup(replacing: .appTermination) {
-                Button("Fokus beenden") { model.quit() }.keyboardShortcut("q")
+                Button(L("Fokus beenden", "Quit Fokus")) { model.quit() }.keyboardShortcut("q")
                     .disabled(model.hasStrictSession)
             }
         }
@@ -33,6 +34,7 @@ struct ZoneApp: App {
 
         MenuBarExtra {
             MenuBarView(model: model)
+                .modifier(ThemedWindow())
                 .onAppear { delegate.model = model }
         } label: {
             if model.menuTitle.isEmpty {
@@ -55,24 +57,24 @@ private struct ZoneCommands: Commands {
 
     var body: some Commands {
         CommandGroup(replacing: .newItem) {
-            Button("Neue Sperrliste…") { openMain(); model.newList() }
+            Button(L("Neue Sperrliste…", "New Block List…")) { openMain(); model.newList() }
                 .keyboardShortcut("n")
-            Button("Neuer Zeitplan…") { openMain(); model.newSchedule() }
+            Button(L("Neuer Zeitplan…", "New Schedule…")) { openMain(); model.newSchedule() }
                 .keyboardShortcut("n", modifiers: [.command, .shift])
                 .disabled(model.availableLists.isEmpty)
         }
         CommandMenu("Fokus") {
-            Button("Neue Sitzung") { model.page = .focus; openMain() }
+            Button(L("Neue Sitzung", "New Session")) { model.page = .focus; openMain() }
                 .keyboardShortcut("f", modifiers: [.command, .shift])
             Divider()
-            Button("Sperrlisten") { model.page = .lists; openMain() }
+            Button(L("Sperrlisten", "Block Lists")) { model.page = .lists; openMain() }
                 .keyboardShortcut("2", modifiers: .command)
-            Button("Zeitpläne") { model.page = .schedules; openMain() }
+            Button(L("Zeitpläne", "Schedules")) { model.page = .schedules; openMain() }
                 .keyboardShortcut("3", modifiers: .command)
         }
         CommandGroup(replacing: .help) {
             // Fokus is a fork of Zone; its project page explains the shared blocking basics.
-            Link("Zone, die Basis von Fokus", destination: URL(string: "https://github.com/morajabi/zone")!)
+            Link(L("Zone, die Basis von Fokus", "Zone, the base of Fokus"), destination: URL(string: "https://github.com/morajabi/zone")!)
         }
     }
 

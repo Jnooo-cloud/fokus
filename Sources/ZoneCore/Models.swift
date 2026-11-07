@@ -23,7 +23,7 @@ public struct BlockList: Codable, Equatable, Identifiable, Sendable {
     /// Allowlist mode: every website is blocked except `exceptions`.
     public var blocksEverything: Bool
 
-    public init(id: UUID = UUID(), name: String = "Ablenkung", domains: [String] = [], apps: [BlockedApp] = [],
+    public init(id: UUID = UUID(), name: String = L("Ablenkung", "Distraction"), domains: [String] = [], apps: [BlockedApp] = [],
                 exceptions: [String] = [], blocksEverything: Bool = false) {
         self.id = id
         self.name = name
@@ -49,7 +49,7 @@ public struct BlockList: Codable, Equatable, Identifiable, Sendable {
 
 public enum SessionMode: String, Codable, CaseIterable, Sendable {
     case flexible, locked
-    public var title: String { self == .flexible ? "Flexibel" : "Gesperrt" }
+    public var title: String { self == .flexible ? L("Flexibel", "Flexible") : L("Gesperrt", "Locked") }
 }
 
 public struct PausePolicy: Codable, Equatable, Sendable {
@@ -256,18 +256,18 @@ public enum ZoneError: Error, LocalizedError, Equatable {
 
     public var errorDescription: String? {
         switch self {
-        case .invalidDomain(let value): "„\(value)“ ist keine Website-Domain. Nimm einen Namen wie youtube.com."
-        case .invalidDuration: "Wähle eine Dauer zwischen 1 Minute und 24 Stunden."
-        case .emptyBlockList: "Füge dieser Sperrliste zuerst eine Website oder App hinzu."
-        case .invalidSchedule: "Wähle gültige Zeiten und mindestens einen Tag."
-        case .lockedSession: "Diese Sitzung läuft bis zum Ende. Du kannst nur entsperren."
-        case .noPauses: "Diese Sitzung hat keine Pausen mehr."
-        case .inactiveSession: "Diese Sitzung ist nicht mehr aktiv."
-        case .unsupportedVersion: "Diese Daten stammen aus einer neueren Version von Fokus."
-        case .invalidUnlock: "Entsperren geht nur für 5 oder 10 Minuten."
-        case .hardModeActive: "Hard Mode läuft. Entsperren geht erst danach."
-        case .unlockLimitReached: "Dein Tageslimit fürs Entsperren ist erreicht."
-        case .missingReason: "Schreib kurz, wofür du es brauchst."
+        case .invalidDomain(let value): L("„\(value)“ ist keine Website-Domain. Nimm einen Namen wie youtube.com.", "“\(value)” is not a website domain. Use a name like youtube.com.")
+        case .invalidDuration: L("Wähle eine Dauer zwischen 1 Minute und 24 Stunden.", "Choose a duration between 1 minute and 24 hours.")
+        case .emptyBlockList: L("Füge dieser Sperrliste zuerst eine Website oder App hinzu.", "Add a website or app to this block list first.")
+        case .invalidSchedule: L("Wähle gültige Zeiten und mindestens einen Tag.", "Choose valid times and at least one day.")
+        case .lockedSession: L("Diese Sitzung läuft bis zum Ende. Du kannst nur entsperren.", "This session runs to the end. You can only unlock.")
+        case .noPauses: L("Diese Sitzung hat keine Pausen mehr.", "This session has no pauses left.")
+        case .inactiveSession: L("Diese Sitzung ist nicht mehr aktiv.", "This session is no longer active.")
+        case .unsupportedVersion: L("Diese Daten stammen aus einer neueren Version von Fokus.", "This data was saved by a newer version of Fokus.")
+        case .invalidUnlock: L("Entsperren geht nur für 5 oder 10 Minuten.", "Unlocks last 5 or 10 minutes.")
+        case .hardModeActive: L("Hard Mode läuft. Entsperren geht erst danach.", "Hard Mode is on. Unlocking waits until it ends.")
+        case .unlockLimitReached: L("Dein Tageslimit fürs Entsperren ist erreicht.", "You have reached your daily unlock limit.")
+        case .missingReason: L("Schreib kurz, wofür du es brauchst.", "Write briefly what you need it for.")
         }
     }
 }

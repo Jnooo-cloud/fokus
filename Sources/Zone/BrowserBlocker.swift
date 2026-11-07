@@ -30,13 +30,13 @@ enum BrowserAccess: Equatable, Sendable {
 
     var description: String {
         switch self {
-        case .ready: "Verbunden"
-        case .closed: "Bereit, sobald geöffnet"
-        case .notRunning: "Verbinden, um hier zu sperren"
-        case .needsPermission: "Automation-Erlaubnis nötig"
-        case .denied: "Fokus unter Datenschutz & Sicherheit → Automation erlauben"
-        case .checking: "Prüfe…"
-        case .failed(let code): "Browser hat nicht geantwortet (\(code)). Nochmal versuchen."
+        case .ready: L("Verbunden", "Connected")
+        case .closed: L("Bereit, sobald geöffnet", "Ready when opened")
+        case .notRunning: L("Verbinden, um hier zu sperren", "Connect to block websites here")
+        case .needsPermission: L("Automation-Erlaubnis nötig", "Automation permission needed")
+        case .denied: L("Fokus unter Datenschutz & Sicherheit → Automation erlauben", "Allow Fokus in Privacy & Security → Automation")
+        case .checking: L("Prüfe…", "Checking…")
+        case .failed(let code): L("Browser hat nicht geantwortet (\(code)). Nochmal versuchen.", "Browser did not respond (\(code)). Try again.")
         }
     }
 }
@@ -62,7 +62,7 @@ final class BrowserBlocker {
             let status = access[browser.id] ?? .notRunning
             return status != .ready && status != .closed && status != .notRunning
         }.map(\.name)
-        return names.isEmpty ? nil : "Erlaube den Zugriff auf \(names.formatted(.list(type: .and))) um dort zu sperren."
+        return names.isEmpty ? nil : L("Erlaube den Zugriff auf \(names.formatted(.list(type: .and))) um dort zu sperren.", "Allow access to \(names.formatted(.list(type: .and))) to block websites there.")
     }
 
     init() { refreshInstalled() }
@@ -131,7 +131,8 @@ final class BrowserBlocker {
         guard enabled else { return }
         let enforce = !EffectiveRules(document: document, at: Date()).domains.isEmpty
         guard enforce || ticks % 5 == 1 else { return }
-        let page = Bundle.main.url(forResource: "Blocked", withExtension: "html")?.absoluteString
+        // The page picks its language from the query; the blocked host follows in the fragment.
+        let page = Bundle.main.url(forResource: "Blocked", withExtension: "html").map { $0.absoluteString + (AppLanguage.isEnglish ? "?lang=en" : "") }
         for browser in installed {
             guard scans[browser.id] == nil, !checking.contains(browser.id), let worker = workers[browser.id] else { continue }
             guard let app = NSRunningApplication.runningApplications(withBundleIdentifier: browser.id).first else {

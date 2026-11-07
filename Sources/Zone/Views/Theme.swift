@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import ZoneCore
 
 /// Fokus' visual language: neutral surfaces, hairline borders, large radii and one soft gradient.
 enum Arc {
@@ -270,6 +271,13 @@ enum ThemeChoice: String, CaseIterable, Identifiable {
         case .dark: .dark
         }
     }
+    var title: String {
+        switch self {
+        case .system: "System"
+        case .light: L("Hell", "Light")
+        case .dark: L("Dunkel", "Dark")
+        }
+    }
     var symbol: String {
         switch self {
         case .system: "circle.lefthalf.filled"
@@ -289,5 +297,9 @@ enum ThemeChoice: String, CaseIterable, Identifiable {
 /// Applies the theme picked in Fokus; every window uses it so they always match.
 struct ThemedWindow: ViewModifier {
     @AppStorage("theme") private var theme = ThemeChoice.dark
-    func body(content: Content) -> some View { content.preferredColorScheme(theme.scheme) }
+    @AppStorage(AppLanguage.defaultsKey) private var language = AppLanguage.system
+    // Rebuilding on a language change re-evaluates every L() text at once.
+    func body(content: Content) -> some View {
+        content.preferredColorScheme(theme.scheme).id(language).environment(\.locale, AppLanguage.locale)
+    }
 }

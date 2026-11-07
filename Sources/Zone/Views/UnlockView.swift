@@ -11,22 +11,22 @@ struct UnlockView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
-                PageHeader(title: "Entsperren", subtitle: "Nur kurz, und nur wenn du es wirklich brauchst.")
+                PageHeader(title: L("Entsperren", "Unlock"), subtitle: L("Nur kurz, und nur wenn du es wirklich brauchst.", "Briefly, and only when you really need it."))
                 ForEach(model.activeUnlocks) { unlock in
                     HStack(spacing: 10) {
                         Circle().fill(Arc.green).frame(width: 7, height: 7)
-                        Text(unlock.domain ?? "Alles").font(.system(size: 13, weight: .medium))
+                        Text(unlock.domain ?? L("Alles", "Everything")).font(.system(size: 13, weight: .medium))
                         Spacer()
                         Text(Countdown.text(until: unlock.until, now: model.now)).monospacedDigit().foregroundStyle(Arc.secondary)
-                        Button("Wieder sperren") { model.relock(unlock) }.buttonStyle(ArcButtonStyle(kind: .quiet))
+                        Button(L("Wieder sperren", "Block Again")) { model.relock(unlock) }.buttonStyle(ArcButtonStyle(kind: .quiet))
                     }.arcCard(padding: 12)
                 }
                 if model.isHard {
-                    state(icon: "lock.fill", title: "Hard Mode läuft", detail: "Bis \(model.hardEndText) ist Entsperren aus. Den Notausgang findest du unter Fokus.")
+                    state(icon: "lock.fill", title: L("Hard Mode läuft", "Hard Mode is on"), detail: L("Bis \(model.hardEndText) ist Entsperren aus. Den Notausgang findest du unter Fokus.", "Unlocking is off until \(model.hardEndText). The emergency exit is on the Focus page."))
                 } else if !model.hasBlocks {
-                    state(icon: "checkmark.circle", title: "Gerade ist nichts gesperrt", detail: "Sobald eine Sitzung läuft, kannst du hier etwas freigeben.")
+                    state(icon: "checkmark.circle", title: L("Gerade ist nichts gesperrt", "Nothing is blocked right now"), detail: L("Sobald eine Sitzung läuft, kannst du hier etwas freigeben.", "Once a session runs, you can free something here."))
                 } else if used >= settings.dailyLimit {
-                    state(icon: "hand.raised", title: "Tageslimit erreicht", detail: "Du hast heute \(used)× entsperrt. Morgen geht es wieder.")
+                    state(icon: "hand.raised", title: L("Tageslimit erreicht", "Daily limit reached"), detail: L("Du hast heute \(used)× entsperrt. Morgen geht es wieder.", "You unlocked \(used)× today. Try again tomorrow."))
                 } else {
                     form
                 }
@@ -47,15 +47,15 @@ struct UnlockView: View {
 
     @ViewBuilder private var form: some View {
         VStack(alignment: .leading, spacing: 16) {
-            field("Was brauchst du?") {
-                ChipRow(chips: [(nil, "Alles")] + model.blockedTargets.map { (Optional($0), $0) }, selection: $model.unlockTarget)
+            field(L("Was brauchst du?", "What do you need?")) {
+                ChipRow(chips: [(nil, L("Alles", "Everything"))] + model.blockedTargets.map { (Optional($0), $0) }, selection: $model.unlockTarget)
             }
-            field("Wie lange?") {
-                PillPicker(options: SessionEngine.unlockChoices.map { ($0, "\($0) Minuten") }, selection: $model.unlockMinutes)
+            field(L("Wie lange?", "How long?")) {
+                PillPicker(options: SessionEngine.unlockChoices.map { ($0, L("\($0) Minuten", "\($0) minutes")) }, selection: $model.unlockMinutes)
             }
             if settings.requiresReason {
-                field("Wofür?") {
-                    TextField("Zum Beispiel: Kundenanfrage beantworten", text: $model.unlockReason)
+                field(L("Wofür?", "What for?")) {
+                    TextField(L("Zum Beispiel: Kundenanfrage beantworten", "For example: answer a client request"), text: $model.unlockReason)
                         .textFieldStyle(.plain).font(.system(size: 13))
                         .padding(.horizontal, 12).padding(.vertical, 10)
                         .background(Arc.muted, in: RoundedRectangle(cornerRadius: Arc.controlRadius, style: .continuous))
@@ -70,18 +70,18 @@ struct UnlockView: View {
                 if ready > model.now {
                     let left = ready.timeIntervalSince(model.now)
                     CountdownRing(fraction: left / max(model.unlockDelay, 1), label: "\(Int(ceil(left)))")
-                    Text("Brauchst du das gerade wirklich?").font(.system(size: 13)).foregroundStyle(Arc.secondary)
-                    Button("Abbrechen") { model.cancelUnlock() }.buttonStyle(ArcButtonStyle(kind: .quiet))
+                    Text(L("Brauchst du das gerade wirklich?", "Do you really need this right now?")).font(.system(size: 13)).foregroundStyle(Arc.secondary)
+                    Button(L("Abbrechen", "Cancel")) { model.cancelUnlock() }.buttonStyle(ArcButtonStyle(kind: .quiet))
                 } else {
-                    HoldToConfirm(title: "Halten: \(model.unlockMinutes) Minuten freigeben") { model.confirmUnlock() }
-                    Button("Doch nicht") { model.cancelUnlock() }.buttonStyle(ArcButtonStyle(kind: .quiet))
+                    HoldToConfirm(title: L("Halten: \(model.unlockMinutes) Minuten freigeben", "Hold: free for \(model.unlockMinutes) minutes")) { model.confirmUnlock() }
+                    Button(L("Doch nicht", "Never mind")) { model.cancelUnlock() }.buttonStyle(ArcButtonStyle(kind: .quiet))
                 }
             } else {
-                Button("Wartezeit starten · \(Int(model.unlockDelay)) Sek") { model.beginUnlock() }
+                Button(L("Wartezeit starten · \(Int(model.unlockDelay)) Sek", "Start wait · \(Int(model.unlockDelay)) s")) { model.beginUnlock() }
                     .buttonStyle(ArcButtonStyle(kind: .primary, wide: true))
                     .disabled(settings.requiresReason && model.unlockReason.trimmingCharacters(in: .whitespacesAndNewlines).count < 3)
             }
-            Text("\(used) von \(settings.dailyLimit) heute · jede Freigabe macht die nächste Wartezeit länger")
+            Text(L("\(used) von \(settings.dailyLimit) heute · jede Freigabe macht die nächste Wartezeit länger", "\(used) of \(settings.dailyLimit) today · every unlock makes the next wait longer"))
                 .font(.system(size: 11.5)).foregroundStyle(Arc.tertiary)
         }.frame(maxWidth: .infinity).arcCard()
     }

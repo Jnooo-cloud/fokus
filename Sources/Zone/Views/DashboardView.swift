@@ -9,8 +9,8 @@ struct DashboardView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
-                PageHeader(title: "Heute", subtitle: Date().formatted(.dateTime.weekday(.wide).day().month(.wide))) {
-                    PillPicker(options: [(ZoneModel.Page.dashboard, "Tag"), (ZoneModel.Page.report, "Woche")], selection: $model.page)
+                PageHeader(title: L("Heute", "Today"), subtitle: Date().formatted(.dateTime.weekday(.wide).day().month(.wide).locale(AppLanguage.locale))) {
+                    PillPicker(options: [(ZoneModel.Page.dashboard, L("Tag", "Day")), (ZoneModel.Page.report, L("Woche", "Week"))], selection: $model.page)
                         .frame(width: 150)
                 }
                 HStack(alignment: .top, spacing: 16) {
@@ -36,20 +36,20 @@ struct DashboardView: View {
     private var findings: [String] {
         var lines: [String] = []
         if let top = store.entries.first(where: { $0.category == .distraction }) {
-            lines.append("\(top.name) frisst heute am meisten: \(Self.time(top.seconds)).")
+            lines.append(L("\(top.name) frisst heute am meisten: \(Self.time(top.seconds)).", "\(top.name) took the most time today: \(Self.time(top.seconds))."))
         }
         if let peak = store.hours.enumerated().max(by: { $0.element < $1.element }), peak.element >= 300 {
-            lines.append("Schwächste Stunde: \(peak.offset) bis \(peak.offset + 1) Uhr.")
+            lines.append(L("Schwächste Stunde: \(peak.offset) bis \(peak.offset + 1) Uhr.", "Weakest hour: \(peak.offset):00 to \(peak.offset + 1):00."))
         }
         if let attempt = model.attemptsToday.max(by: { $0.value < $1.value }), attempt.value >= 2 {
-            lines.append("\(attempt.key) wolltest du \(attempt.value)× öffnen.")
+            lines.append(L("\(attempt.key) wolltest du \(attempt.value)× öffnen.", "You tried to open \(attempt.key) \(attempt.value)×."))
         }
         return lines
     }
 
     static func time(_ seconds: Double) -> String {
         let minutes = Int(seconds / 60)
-        return minutes < 60 ? "\(minutes) Min" : "\(minutes / 60) Std \(minutes % 60) Min"
+        return minutes < 60 ? L("\(minutes) Min", "\(minutes) min") : L("\(minutes / 60) Std \(minutes % 60) Min", "\(minutes / 60) h \(minutes % 60) min")
     }
 
     static func short(_ seconds: Double) -> String {
@@ -90,7 +90,7 @@ private struct TimelineCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            CardTitle(text: "TAGESVERLAUF", trailing: "pro Stunde")
+            CardTitle(text: L("TAGESVERLAUF", "TIMELINE"), trailing: L("pro Stunde", "per hour"))
             VStack(spacing: 5) {
                 ForEach(range, id: \.self) { hour in
                     HStack(spacing: 10) {
@@ -107,14 +107,14 @@ private struct TimelineCard: View {
                                 }
                             }
                         }.frame(height: 16)
-                            .help("\(hour) Uhr: \(DashboardView.time(hours[hour].total)) aktiv, \(DashboardView.time(hours[hour].distraction)) Ablenkung")
+                            .help(L("\(hour) Uhr: \(DashboardView.time(hours[hour].total)) aktiv, \(DashboardView.time(hours[hour].distraction)) Ablenkung", "\(hour):00: \(DashboardView.time(hours[hour].total)) active, \(DashboardView.time(hours[hour].distraction)) distraction"))
                     }
                 }
             }
             HStack(spacing: 14) {
-                LegendDot(name: "Arbeit", color: Arc.work)
+                LegendDot(name: L("Arbeit", "Work"), color: Arc.work)
                 LegendDot(name: "Neutral", color: Arc.neutralTone)
-                LegendDot(name: "Ablenkung", color: Arc.distraction)
+                LegendDot(name: L("Ablenkung", "Distraction"), color: Arc.distraction)
             }
         }.arcCard()
     }
@@ -144,19 +144,19 @@ private struct FocusTimeCard: View {
     private var delta: String? {
         guard yesterday.work >= 300 else { return nil }
         let change = Int(((today.work - yesterday.work) / yesterday.work * 100).rounded())
-        return "\(change >= 0 ? "+" : "")\(change) % vs. gestern"
+        return (change >= 0 ? "+" : "") + "\(change) % " + L("vs. gestern", "vs. yesterday")
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            CardTitle(text: "FOKUSZEIT")
+            CardTitle(text: L("FOKUSZEIT", "FOCUS TIME"))
             Text(DashboardView.short(today.work)).font(.system(size: 40, weight: .semibold)).tracking(-1.4)
                 .foregroundStyle(LinearGradient(colors: [Arc.ink, Arc.ink.opacity(0.75)], startPoint: .top, endPoint: .bottom))
             if let delta {
                 Text(delta).font(.system(size: 12, weight: .medium)).foregroundStyle(today.work >= yesterday.work ? Arc.green : Arc.rose)
             }
             HStack(spacing: 0) {
-                metric("Aktiv", DashboardView.short(today.total))
+                metric(L("Aktiv", "Active"), DashboardView.short(today.total))
                 Rectangle().fill(Arc.divider).frame(width: 1, height: 30)
                 metric("Score", "\(today.score) %")
             }.padding(.top, 4)
@@ -182,7 +182,7 @@ private struct SplitCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            CardTitle(text: "VERTEILUNG")
+            CardTitle(text: L("VERTEILUNG", "SPLIT"))
             HStack(spacing: 16) {
                 ZStack {
                     let total = max(totals.total, 1)
@@ -201,9 +201,9 @@ private struct SplitCard: View {
                     }
                 }.frame(width: 86, height: 86)
                 VStack(alignment: .leading, spacing: 9) {
-                    row("Arbeit", totals.work, Arc.work)
+                    row(L("Arbeit", "Work"), totals.work, Arc.work)
                     row("Neutral", totals.neutral, Arc.neutralTone)
-                    row("Ablenkung", totals.distraction, Arc.distraction)
+                    row(L("Ablenkung", "Distraction"), totals.distraction, Arc.distraction)
                 }
             }
         }.arcCard()
@@ -223,9 +223,9 @@ private struct HabitCard: View {
     let model: ZoneModel
     var body: some View {
         HStack(spacing: 0) {
-            stat("Sperrversuche", "\(model.attemptsToday.values.reduce(0, +))")
+            stat(L("Sperrversuche", "Blocked attempts"), "\(model.attemptsToday.values.reduce(0, +))")
             Rectangle().fill(Arc.divider).frame(width: 1, height: 34)
-            stat("Entsperrt", "\(model.unlocksToday)×")
+            stat(L("Entsperrt", "Unlocked"), "\(model.unlocksToday)×")
         }.arcCard(padding: 14)
     }
 
@@ -241,7 +241,7 @@ private struct FindingsCard: View {
     let lines: [String]
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            CardTitle(text: "AUFGEFALLEN")
+            CardTitle(text: L("AUFGEFALLEN", "NOTICED"))
             ForEach(lines, id: \.self) {
                 Text($0).font(.system(size: 12.5)).foregroundStyle(Arc.ink.opacity(0.85)).fixedSize(horizontal: false, vertical: true)
             }
@@ -256,13 +256,13 @@ private struct EntriesCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            CardTitle(text: "APPS UND WEBSITES", trailing: "Top 14").padding(.bottom, 8)
-            if entries.isEmpty { Text("Noch keine Daten für heute.").font(.system(size: 13)).foregroundStyle(Arc.secondary) }
+            CardTitle(text: L("APPS UND WEBSITES", "APPS AND WEBSITES"), trailing: "Top 14").padding(.bottom, 8)
+            if entries.isEmpty { Text(L("Noch keine Daten für heute.", "No data for today yet.")).font(.system(size: 13)).foregroundStyle(Arc.secondary) }
             ForEach(entries.prefix(14)) { entry in
                 EntryRow(entry: entry, share: entry.seconds / total, largest: entries.first?.seconds ?? 1, store: store,
                          pages: store.titles[entry.name] ?? [])
             }
-            Text(store.titles.isEmpty ? "Rechtsklick auf einen Eintrag ändert die Kategorie." : "Klick auf eine Website zeigt die Seiten, Rechtsklick ändert die Kategorie.").font(.system(size: 11)).foregroundStyle(Arc.tertiary).padding(.top, 6)
+            Text(store.titles.isEmpty ? L("Rechtsklick auf einen Eintrag ändert die Kategorie.", "Right-click an item to change its category.") : L("Klick auf eine Website zeigt die Seiten, Rechtsklick ändert die Kategorie.", "Click a website to see its pages, right-click to change the category.")).font(.system(size: 11)).foregroundStyle(Arc.tertiary).padding(.top, 6)
         }.arcCard()
     }
 }
@@ -381,8 +381,8 @@ private struct GroupsCard: View {
         }.filter { $0.1 >= 60 }.sorted { $0.1 > $1.1 }
         let open = store.byGroup[nil] ?? 0
         VStack(alignment: .leading, spacing: 10) {
-            CardTitle(text: "KATEGORIEN")
-            if rows.isEmpty && open < 60 { Text("Noch nichts erfasst.").font(.system(size: 12.5)).foregroundStyle(Arc.secondary) }
+            CardTitle(text: L("KATEGORIEN", "CATEGORIES"))
+            if rows.isEmpty && open < 60 { Text(L("Noch nichts erfasst.", "Nothing tracked yet.")).font(.system(size: 12.5)).foregroundStyle(Arc.secondary) }
             ForEach(rows, id: \.0.id) { top, seconds, subs in
                 VStack(alignment: .leading, spacing: 5) {
                     HStack(spacing: 7) {
@@ -402,7 +402,7 @@ private struct GroupsCard: View {
             }
             if open >= 60 {
                 HStack {
-                    Text("Ohne Kategorie").font(.system(size: 12)).foregroundStyle(Arc.tertiary)
+                    Text(L("Ohne Kategorie", "No category")).font(.system(size: 12)).foregroundStyle(Arc.tertiary)
                     Spacer()
                     Text(DashboardView.short(open)).font(.system(size: 12)).monospacedDigit().foregroundStyle(Arc.tertiary)
                 }

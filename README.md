@@ -2,7 +2,7 @@
 
 Fokus ist ein lokaler Website-Blocker und Zeit-Tracker für den Mac. Er sperrt Ablenkungen in Chrome, Safari und Edge, ohne Browser-Extension, und zeigt dir, wo deine Zeit am Rechner wirklich hingeht. Kein Konto, keine Cloud, kein Abo. Alles bleibt auf deinem Mac.
 
-*English: Fokus is a local, extension-free website blocker and time tracker for macOS. The interface is German for now.*
+*English: Fokus is a local, extension-free website blocker and time tracker for macOS. The app speaks German and English, switchable in Settings.*
 
 ![Überblick im dunklen Design](docs/images/screens/ueberblick-dunkel.png)
 
@@ -26,6 +26,7 @@ Fokus ist ein lokaler Website-Blocker und Zeit-Tracker für den Mac. Er sperrt A
 - Optional Seitentitel speichern und Regeln danach, zum Beispiel „YouTube mit Tutorial im Titel zählt als Recherche“
 - Zählt Sperrversuche und speichert, warum du entsperrt hast
 - Helles und dunkles Design
+- Deutsch und Englisch, umschaltbar unter Einstellungen → Allgemein → Sprache
 
 | | |
 |---|---|

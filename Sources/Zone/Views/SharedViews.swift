@@ -34,9 +34,9 @@ struct RuleSummary: View {
     }
 
     static func text(for list: BlockList) -> String {
-        let websites = list.blocksEverything ? "Alle Websites" : list.domains.count == 1 ? "1 Website" : "\(list.domains.count) Websites"
-        let apps = list.apps.count == 1 ? "1 App" : "\(list.apps.count) Apps"
-        if list.isEmpty { return "Keine Websites oder Apps" }
+        let websites = list.blocksEverything ? L("Alle Websites", "All websites") : list.domains.count == 1 ? L("1 Website", "1 website") : L("\(list.domains.count) Websites", "\(list.domains.count) websites")
+        let apps = list.apps.count == 1 ? L("1 App", "1 app") : L("\(list.apps.count) Apps", "\(list.apps.count) apps")
+        if list.isEmpty { return L("Keine Websites oder Apps", "No websites or apps") }
         if !list.blocksWebsites { return apps }
         if list.apps.isEmpty { return websites }
         return "\(websites) · \(apps)"
@@ -52,7 +52,7 @@ struct BrowserSetupPrompt: View {
                 .font(.callout.weight(.medium))
             Text(model.websiteBlockingDetail).font(.caption).foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
-            Button("Website-Sperre einrichten…") { openSettings.showWebsites(model) }
+            Button(L("Website-Sperre einrichten…", "Set Up Website Blocking…")) { openSettings.showWebsites(model) }
         }.padding(12).frame(maxWidth: .infinity, alignment: .leading).modifier(PanelStyle())
     }
 }
@@ -73,7 +73,7 @@ struct BlockingNotice: View {
 enum SessionOptionsSummary {
     /// Scheduled sessions are always strict, so their summary leaves out the mode.
     static func text(for options: SessionOptions, scheduled: Bool = false) -> String {
-        scheduled ? "Läuft bis zum Ende" : options.mode.title
+        scheduled ? L("Läuft bis zum Ende", "Runs to the end") : options.mode.title
     }
 }
 
@@ -84,15 +84,15 @@ struct SessionOptionsEditor: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             if scheduled {
-                Text("Geplante Sitzungen lassen sich nicht früher beenden. Einzelne Seiten kannst du entsperren.")
+                Text(L("Geplante Sitzungen lassen sich nicht früher beenden. Einzelne Seiten kannst du entsperren.", "Scheduled sessions can’t be ended early. You can unlock single sites."))
                     .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             } else {
                 Picker("Session mode", selection: $options.mode) {
                     ForEach(SessionMode.allCases, id: \.self) { mode in Text(mode.title).tag(mode) }
                 }.pickerStyle(.segmented)
                 Text(options.mode == .locked
-                     ? "Läuft bis zum Ende. Entsperren bleibt möglich."
-                     : "Lässt sich jederzeit beenden.")
+                     ? L("Läuft bis zum Ende. Entsperren bleibt möglich.", "Runs to the end. Unlocking stays possible.")
+                     : L("Lässt sich jederzeit beenden.", "Can be ended anytime."))
                     .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -117,9 +117,9 @@ struct SessionCard: View {
                 Text(session.name).font(.headline).lineLimit(2)
                 Spacer()
                 if session.isStrict {
-                    Label(session.scheduleID != nil ? "Geplant" : "Gesperrt", systemImage: "lock.fill")
+                    Label(session.scheduleID != nil ? L("Geplant", "Scheduled") : L("Gesperrt", "Locked"), systemImage: "lock.fill")
                         .font(.caption.weight(.medium)).foregroundStyle(.secondary)
-                        .help("Läuft bis zum Ende. Du kannst nur entsperren.")
+                        .help(L("Läuft bis zum Ende. Du kannst nur entsperren.", "Runs to the end. You can only unlock."))
                 }
             }
             VStack(spacing: 4) {
@@ -127,29 +127,29 @@ struct SessionCard: View {
                     .font(.system(size: compact ? 48 : 58, weight: .light, design: .rounded))
                     .monospacedDigit().minimumScaleFactor(0.6).lineLimit(1)
                     .accessibilityLabel("\(remaining) \(paused ? "of pause remaining" : "remaining")")
-                Text(paused ? "Pause läuft" : "Restzeit")
+                Text(paused ? L("Pause läuft", "Paused") : L("Restzeit", "Time remaining"))
                     .font(.callout).foregroundStyle(paused ? .orange : .secondary)
             }.frame(maxWidth: .infinity).padding(.vertical, 8)
 
             VStack(spacing: 6) {
                 RuleSummary(list: session.blockList)
-                Text("Sitzung endet um \(session.endsAt, format: .dateTime.hour().minute())")
+                Text(L("Sitzung endet um ", "Session ends at ") + session.endsAt.formatted(date: .omitted, time: .shortened))
                     .font(.caption).foregroundStyle(.secondary)
                 if paused {
                     Text((session.pausedUntil ?? session.endsAt) < session.endsAt
-                         ? "Die Sperre kommt automatisch zurück." : "Diese Sitzung endet mit der Pause.")
+                         ? L("Die Sperre kommt automatisch zurück.", "Blocking comes back automatically.") : L("Diese Sitzung endet mit der Pause.", "This session ends with the pause."))
                         .font(.caption).foregroundStyle(.secondary)
                 }
             }
 
             VStack(spacing: 12) {
                 Button { model.page = .unlock } label: {
-                    Text(model.isHard ? "Entsperren ist aus" : "Entsperren…")
+                    Text(model.isHard ? L("Entsperren ist aus", "Unlocking is off") : L("Entsperren…", "Unlock…"))
                 }.buttonStyle(ArcButtonStyle(kind: .quiet, wide: true)).disabled(model.isHard)
                 HStack {
                     Spacer()
                     if !session.isStrict {
-                        Button("Sitzung beenden") { confirmEnd = true }
+                        Button(L("Sitzung beenden", "End Session")) { confirmEnd = true }
                             .buttonStyle(.borderless).font(.caption)
                     }
                 }
@@ -157,10 +157,10 @@ struct SessionCard: View {
         }
         .padding(compact ? 4 : 20)
         .accessibilityElement(children: .contain)
-        .confirmationDialog("Diese Sitzung beenden?", isPresented: $confirmEnd, titleVisibility: .visible) {
-            Button("Sitzung beenden", role: .destructive) { model.stop(session) }
+        .confirmationDialog(L("Diese Sitzung beenden?", "End this session?"), isPresented: $confirmEnd, titleVisibility: .visible) {
+            Button(L("Sitzung beenden", "End Session"), role: .destructive) { model.stop(session) }
         } message: {
-            Text(model.activeSessions.count > 1 ? "Andere aktive Sitzungen bleiben bestehen." : "Websites und Apps dieser Sitzung sind dann wieder offen.")
+            Text(model.activeSessions.count > 1 ? L("Andere aktive Sitzungen bleiben bestehen.", "Other active sessions keep running.") : L("Websites und Apps dieser Sitzung sind dann wieder offen.", "Websites and apps in this session open up again."))
         }
     }
 }
@@ -220,10 +220,10 @@ enum ScheduleFormat {
     static func summary(_ schedule: FocusSchedule) -> String {
         if schedule.kind == .once {
             let calendar = Calendar.autoupdatingCurrent
-            let day = schedule.onceStart.formatted(.dateTime.month(.abbreviated).day())
+            let day = schedule.onceStart.formatted(.dateTime.month(.abbreviated).day().locale(AppLanguage.locale))
             let end = calendar.isDate(schedule.onceStart, inSameDayAs: schedule.onceEnd)
                 ? schedule.onceEnd.formatted(date: .omitted, time: .shortened)
-                : schedule.onceEnd.formatted(.dateTime.month(.abbreviated).day().hour().minute())
+                : schedule.onceEnd.formatted(.dateTime.month(.abbreviated).day().hour().minute().locale(AppLanguage.locale))
             return "\(day) · \(schedule.onceStart.formatted(date: .omitted, time: .shortened)) – \(end)"
         }
         return "\(days(schedule.weekdays)) · \(time(schedule.startMinute)) – \(time(schedule.endMinute))"
@@ -231,9 +231,9 @@ enum ScheduleFormat {
 
     static func days(_ weekdays: Set<Int>) -> String {
         let calendar = Calendar.autoupdatingCurrent
-        if weekdays.count == 7 { return "Täglich" }
-        if weekdays == [2, 3, 4, 5, 6] { return "Mo bis Fr" }
-        if weekdays == [1, 7] { return "Wochenende" }
+        if weekdays.count == 7 { return L("Täglich", "Every day") }
+        if weekdays == [2, 3, 4, 5, 6] { return L("Mo bis Fr", "Weekdays") }
+        if weekdays == [1, 7] { return L("Wochenende", "Weekends") }
         return orderedWeekdays.filter(weekdays.contains).map { calendar.shortWeekdaySymbols[$0 - 1] }.joined(separator: ", ")
     }
 

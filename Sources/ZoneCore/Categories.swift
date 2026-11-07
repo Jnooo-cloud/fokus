@@ -82,7 +82,7 @@ public struct CategoryConfig: Codable, Equatable, Sendable {
     public func rating(of id: UUID?) -> UsageCategory? { top(of: id)?.rating }
 
     public func path(_ id: UUID?) -> String {
-        guard let group = group(id) else { return "Ohne Kategorie" }
+        guard let group = group(id) else { return L("Ohne Kategorie", "No category") }
         guard let parent = group.parentID.flatMap({ self.group($0) }) else { return group.name }
         return "\(parent.name) › \(group.name)"
     }
@@ -139,15 +139,15 @@ public struct CategoryConfig: Codable, Equatable, Sendable {
 
     public static func defaults(migrating overrides: [String: String] = [:]) -> CategoryConfig {
         var config = CategoryConfig()
-        let work = config.addGroup(name: "Arbeit", rating: .work)
-        let personal = config.addGroup(name: "Privat", rating: .neutral)
-        let distraction = config.addGroup(name: "Ablenkung", rating: .distraction)
-        let talk = config.addGroup(name: "Kommunikation", rating: .work, parentID: work)
-        let build = config.addGroup(name: "Entwicklung", rating: .work, parentID: work)
-        let research = config.addGroup(name: "Recherche", rating: .work, parentID: work)
+        let work = config.addGroup(name: L("Arbeit", "Work"), rating: .work)
+        let personal = config.addGroup(name: L("Privat", "Personal"), rating: .neutral)
+        let distraction = config.addGroup(name: L("Ablenkung", "Distraction"), rating: .distraction)
+        let talk = config.addGroup(name: L("Kommunikation", "Communication"), rating: .work, parentID: work)
+        let build = config.addGroup(name: L("Entwicklung", "Development"), rating: .work, parentID: work)
+        let research = config.addGroup(name: L("Recherche", "Research"), rating: .work, parentID: work)
         let content = config.addGroup(name: "Content", rating: .work, parentID: work)
-        _ = config.addGroup(name: "Lesen", rating: .neutral, parentID: personal)
-        _ = config.addGroup(name: "Organisation", rating: .neutral, parentID: personal)
+        _ = config.addGroup(name: L("Lesen", "Reading"), rating: .neutral, parentID: personal)
+        _ = config.addGroup(name: L("Organisation", "Organizing"), rating: .neutral, parentID: personal)
         let social = config.addGroup(name: "Social Media", rating: .distraction, parentID: distraction)
         let entertainment = config.addGroup(name: "Entertainment", rating: .distraction, parentID: distraction)
         let shopping = config.addGroup(name: "Shopping", rating: .distraction, parentID: distraction)

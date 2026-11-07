@@ -11,6 +11,17 @@ final class ZoneModel {
     enum Page: String, CaseIterable, Identifiable {
         case dashboard = "Überblick", report = "Wochenbericht", focus = "Fokus", unlock = "Entsperren", lists = "Sperrlisten", schedules = "Zeitpläne", categories = "Kategorien"
         var id: Self { self }
+        var title: String {
+            switch self {
+            case .dashboard: L("Überblick", "Overview")
+            case .report: L("Wochenbericht", "Weekly Report")
+            case .focus: L("Fokus", "Focus")
+            case .unlock: L("Entsperren", "Unlock")
+            case .lists: L("Sperrlisten", "Block Lists")
+            case .schedules: L("Zeitpläne", "Schedules")
+            case .categories: L("Kategorien", "Categories")
+            }
+        }
         var symbol: String {
             switch self {
             case .dashboard: "chart.bar"
@@ -75,7 +86,7 @@ final class ZoneModel {
         catch {
             document = ZoneDocument()
             storageFailed = true
-            errorMessage = "Fokus konnte die gespeicherten Sitzungen nicht lesen. Die Datei bleibt erhalten. \(error.localizedDescription)"
+            errorMessage = L("Fokus konnte die gespeicherten Sitzungen nicht lesen. Die Datei bleibt erhalten. \(error.localizedDescription)", "Fokus could not read its saved sessions. The file is kept. \(error.localizedDescription)")
         }
         if isFirstRun { document = Self.starterDocument(); try? store.save(document) }
         quickMinutes = document.defaultMinutes
@@ -85,7 +96,7 @@ final class ZoneModel {
             ?? document.blockLists.first(where: { !$0.isEmpty })?.id ?? document.blockLists.first?.id
         browsers.onRedirect = { [weak self] host in self?.recordAttempt(host) }
         blocker.onBlocked = { [weak self] name in self?.lastBlockedApp = name; self?.appBlockFailure = nil }
-        blocker.onFailure = { [weak self] name in self?.appBlockFailure = "\(name) ließ sich nicht schließen." }
+        blocker.onFailure = { [weak self] name in self?.appBlockFailure = L("\(name) ließ sich nicht schließen.", "\(name) could not be closed.") }
         tick()
         if websiteMode == .network { filter.update(document) }
         let clock = Timer(timeInterval: 1, repeats: true) { [weak self] _ in
@@ -107,7 +118,7 @@ final class ZoneModel {
     /// A ready list and a weekday schedule that starts switched off, so nothing blocks before the user decides.
     private static func starterDocument() -> ZoneDocument {
         let list = BlockList(domains: ["instagram.com", "tiktok.com", "youtube.com", "reddit.com", "x.com", "facebook.com"])
-        let schedule = FocusSchedule(name: "Fokuszeit", blockListID: list.id, isEnabled: false, weekdays: [2, 3, 4, 5, 6],
+        let schedule = FocusSchedule(name: L("Fokuszeit", "Focus time"), blockListID: list.id, isEnabled: false, weekdays: [2, 3, 4, 5, 6],
                                      startMinute: 9 * 60, endMinute: 17 * 60)
         return ZoneDocument(blockLists: [list], schedules: [schedule])
     }
@@ -255,8 +266,8 @@ final class ZoneModel {
     }
     var websiteBlockingTitle: String {
         if websiteMode == .network { return filter.state.title }
-        if browsers.attention != nil { return "Browser-Zugriff prüfen" }
-        return websiteBlockingReady ? "Browser sind bereit" : "Browser verbinden"
+        if browsers.attention != nil { return L("Browser-Zugriff prüfen", "Check browser access") }
+        return websiteBlockingReady ? L("Browser sind bereit", "Browsers are ready") : L("Browser verbinden", "Connect a browser")
     }
 
     func newList() {
@@ -275,8 +286,8 @@ final class ZoneModel {
     var websiteBlockingDetail: String {
         if websiteMode == .network { return filter.detail }
         return browsers.attention ?? (websiteBlockingReady
-            ? "Gesperrte Tabs werden umgeleitet, solange Fokus läuft."
-            : "Verbinde deine Browser in den Einstellungen.")
+            ? L("Gesperrte Tabs werden umgeleitet, solange Fokus läuft.", "Blocked tabs are redirected while Fokus runs.")
+            : L("Verbinde deine Browser in den Einstellungen.", "Connect your browsers in Settings."))
     }
 
     func setWebsiteMode(_ mode: WebsiteMode) {
@@ -318,7 +329,7 @@ final class ZoneModel {
         guard let list = selectedList else { return }
         do {
             if !list.domains.isEmpty && !websiteBlockingReady {
-                errorMessage = "Richte erst die Website-Sperre in den Einstellungen ein."
+                errorMessage = L("Richte erst die Website-Sperre in den Einstellungen ein.", "Set up website blocking in Settings first.")
                 return
             }
             let session = try SessionEngine.start(list: list, minutes: quickMinutes, options: quickOptions, at: Date())
@@ -355,7 +366,7 @@ final class ZoneModel {
 
     func deleteList(_ list: BlockList) {
         guard !document.schedules.contains(where: { $0.blockListID == list.id }) else {
-            errorMessage = "Entferne erst die Zeitpläne, die diese Liste nutzen."
+            errorMessage = L("Entferne erst die Zeitpläne, die diese Liste nutzen.", "Remove the schedules using this list first.")
             return
         }
         var next = document
@@ -372,7 +383,7 @@ final class ZoneModel {
             try SessionEngine.validate(schedule)
             guard let list = document.blockLists.first(where: { $0.id == schedule.blockListID }), !list.isEmpty else { throw ZoneError.emptyBlockList }
             if schedule.isEnabled && !list.domains.isEmpty && !websiteBlockingReady {
-                errorMessage = "Speichere den Zeitplan deaktiviert und verbinde dann deine Browser in den Einstellungen."
+                errorMessage = L("Speichere den Zeitplan deaktiviert und verbinde dann deine Browser in den Einstellungen.", "Save the schedule turned off, then connect your browsers in Settings.")
                 return false
             }
             var next = document
@@ -396,19 +407,19 @@ final class ZoneModel {
 
     /// Scheduled sessions are strict: their schedule stays as it is until the session ends.
     static func runningScheduleMessage(_ session: FocusSession) -> String {
-        "This schedule is running. You can change it after it ends at \(session.endsAt.formatted(date: .omitted, time: .shortened))."
+        L("This schedule is running. You can change it after it ends at \(session.endsAt.formatted(date: .omitted, time: .shortened)).", "This schedule is running. You can change it after it ends at \(session.endsAt.formatted(date: .omitted, time: .shortened)).")
     }
 
     func quit() {
-        guard !hasStrictSession else { errorMessage = "Fokus bleibt offen, bis deine geplante oder gesperrte Sitzung endet."; return }
+        guard !hasStrictSession else { errorMessage = L("Fokus bleibt offen, bis deine geplante oder gesperrte Sitzung endet.", "Fokus stays open until your scheduled or locked session ends."); return }
         if !activeSessions.isEmpty {
             let alert = NSAlert()
-            alert.messageText = "Sitzungen beenden und Fokus schließen?"
+            alert.messageText = L("Sitzungen beenden und Fokus schließen?", "End sessions and quit Fokus?")
             alert.informativeText = websiteMode == .browser
-                ? "Laufende Sitzungen enden. Geplante Sitzungen brauchen ein laufendes Fokus."
+                ? L("Laufende Sitzungen enden. Geplante Sitzungen brauchen ein laufendes Fokus.", "Current sessions will end. Scheduled sessions need Fokus running.")
                 : "Current sessions will end. App schedules need Zone running. Website schedules can continue in the network filter."
-            alert.addButton(withTitle: "Sitzung beendens and Quit")
-            alert.addButton(withTitle: "Abbrechen")
+            alert.addButton(withTitle: L("Sitzung beendens and Quit", "End Sessions and Quit"))
+            alert.addButton(withTitle: L("Abbrechen", "Cancel"))
             guard alert.runModal() == .alertFirstButtonReturn else { return }
             var next = document
             for index in next.sessions.indices where next.sessions[index].isActive(at: Date()) {
@@ -427,7 +438,7 @@ final class ZoneModel {
 
     @discardableResult private func commit(_ next: ZoneDocument) -> Bool {
         guard !storageFailed else {
-            errorMessage = "Saved data could not be read. Fix or restore the sessions file and restart Zone before making changes."
+            errorMessage = L("Saved data could not be read. Fix or restore the sessions file and restart Zone before making changes.", "Saved data could not be read. Fix or restore the sessions file and restart Fokus before making changes.")
             return false
         }
         do {
@@ -436,6 +447,6 @@ final class ZoneModel {
             if websiteMode == .network { filter.update(next) }
             browsers.update(next, enabled: websiteMode == .browser)
             return true
-        } catch { errorMessage = "Could not save changes: \(error.localizedDescription)"; return false }
+        } catch { errorMessage = L("Could not save changes: \(error.localizedDescription)", "Could not save changes: \(error.localizedDescription)"); return false }
     }
 }

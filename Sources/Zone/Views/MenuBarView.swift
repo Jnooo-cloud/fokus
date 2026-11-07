@@ -28,22 +28,22 @@ struct MenuBarView: View {
             MenuDivider()
             HStack(spacing: 2) {
                 MenuRow(action: { openWindow.openMain() }) {
-                    Text("Fokus öffnen")
+                    Text(L("Fokus öffnen", "Open Fokus"))
                 }
                 Button { model.page = .unlock; openWindow.openMain() } label: {
                     Image(systemName: "lock.open").frame(width: 26, height: 22)
                 }
-                .buttonStyle(.borderless).help("Entsperren").accessibilityLabel("Entsperren")
+                .buttonStyle(.borderless).help(L("Entsperren", "Unlock")).accessibilityLabel(L("Entsperren", "Unlock"))
                 Button { openSettings(); NSApp.activate() } label: {
                     Image(systemName: "gearshape").frame(width: 26, height: 22)
                 }
-                .buttonStyle(.borderless).help("Einstellungen").accessibilityLabel("Einstellungen")
+                .buttonStyle(.borderless).help(L("Einstellungen", "Settings")).accessibilityLabel(L("Einstellungen", "Settings"))
                 Button { model.quit() } label: {
                     Image(systemName: "power").frame(width: 26, height: 22)
                 }
                 .buttonStyle(.borderless).disabled(model.hasStrictSession)
-                .help(model.hasStrictSession ? "Fokus bleibt offen, bis die Sitzung endet" : "Fokus beenden")
-                .accessibilityLabel("Fokus beenden")
+                .help(model.hasStrictSession ? L("Fokus bleibt offen, bis die Sitzung endet", "Fokus stays open until the session ends") : L("Fokus beenden", "Quit Fokus"))
+                .accessibilityLabel(L("Fokus beenden", "Quit Fokus"))
             }.padding(6)
         }
         .frame(width: 300)
@@ -75,17 +75,17 @@ private struct MenuGreeting: View {
 
     private var greeting: String {
         switch Calendar.autoupdatingCurrent.component(.hour, from: model.now) {
-        case 5..<12: "Guten Morgen"
-        case 12..<17: "Guten Tag"
-        case 17..<22: "Guten Abend"
-        default: "Hey, Nachteule"
+        case 5..<12: L("Guten Morgen", "Good morning")
+        case 12..<17: L("Guten Tag", "Good afternoon")
+        case 17..<22: L("Guten Abend", "Good evening")
+        default: L("Hey, Nachteule", "Hello, night owl")
         }
     }
 
     private var subtitle: String {
-        if model.availableLists.isEmpty { return "Wähle, was gesperrt wird, dann reicht ein Klick." }
-        guard let next = model.nextScheduledSession else { return "Bereit, wenn du es bist." }
-        return "Als Nächstes: \(next.name), \(MenuFormat.when(next.start, now: model.now))"
+        if model.availableLists.isEmpty { return L("Wähle, was gesperrt wird, dann reicht ein Klick.", "Choose what to block, then focus in one click.") }
+        guard let next = model.nextScheduledSession else { return L("Bereit, wenn du es bist.", "Ready when you are.") }
+        return L("Als Nächstes: \(next.name), \(MenuFormat.when(next.start, now: model.now))", "Next up: \(next.name), \(MenuFormat.when(next.start, now: model.now))")
     }
 }
 
@@ -105,10 +105,10 @@ private struct MenuSessionCard: View {
     private var caption: String {
         if paused {
             return pauseEnd < session.endsAt
-                ? "Pausiert · Fokus ab \(pauseEnd.formatted(date: .omitted, time: .shortened))"
-                : "Pausiert · endet um \(endTime)"
+                ? L("Pausiert · Fokus ab \(pauseEnd.formatted(date: .omitted, time: .shortened))", "Paused · focus resumes at \(pauseEnd.formatted(date: .omitted, time: .shortened))")
+                : L("Pausiert · endet um \(endTime)", "Paused · ends at \(endTime)")
         }
-        return "Bis \(endTime)"
+        return L("Bis \(endTime)", "Until \(endTime)")
     }
 
     var body: some View {
@@ -117,16 +117,16 @@ private struct MenuSessionCard: View {
                 Text(session.name).font(.callout.weight(.semibold)).lineLimit(1)
                 Spacer(minLength: 8)
                 if session.isStrict {
-                    Label(session.scheduleID != nil ? "Geplant" : "Gesperrt", systemImage: "lock.fill")
+                    Label(session.scheduleID != nil ? L("Geplant", "Scheduled") : L("Gesperrt", "Locked"), systemImage: "lock.fill")
                         .font(.caption2.weight(.medium)).foregroundStyle(.secondary)
-                        .help("Läuft bis \(endTime). Du kannst nur entsperren.")
+                        .help(L("Läuft bis \(endTime). Du kannst nur entsperren.", "Runs until \(endTime). You can only unlock."))
                 }
             }
             HStack(alignment: .center) {
                 Text(Countdown.text(until: paused ? pauseEnd : session.endsAt, now: model.now))
                     .font(.system(size: 30, weight: .light, design: .rounded)).monospacedDigit()
                     .foregroundStyle(paused ? Color.secondary : Color.primary)
-                    .accessibilityLabel(paused ? "Pause läuft" : "Fokus läuft")
+                    .accessibilityLabel(paused ? L("Pause läuft", "Paused") : L("Fokus läuft", "Focusing"))
                     .accessibilityValue(Countdown.text(until: paused ? pauseEnd : session.endsAt, now: model.now))
                 Spacer()
             }
@@ -135,17 +135,17 @@ private struct MenuSessionCard: View {
                 Text(caption).font(.caption).foregroundStyle(.secondary).lineLimit(1)
                 Spacer(minLength: 8)
                 if !session.isStrict {
-                    Button("Beenden") { confirmEnd = true }.buttonStyle(.link).font(.caption)
+                    Button(L("Beenden", "End")) { confirmEnd = true }.buttonStyle(.link).font(.caption)
                 }
             }
         }
         .padding(12)
         .background(.quaternary.opacity(0.55), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
         .accessibilityElement(children: .contain)
-        .confirmationDialog("Diese Sitzung beenden?", isPresented: $confirmEnd, titleVisibility: .visible) {
-            Button("Sitzung beenden", role: .destructive) { model.stop(session) }
+        .confirmationDialog(L("Diese Sitzung beenden?", "End this session?"), isPresented: $confirmEnd, titleVisibility: .visible) {
+            Button(L("Sitzung beenden", "End Session"), role: .destructive) { model.stop(session) }
         } message: {
-            Text(model.activeSessions.count > 1 ? "Andere aktive Sitzungen bleiben bestehen." : "Websites und Apps dieser Sitzung sind dann wieder offen.")
+            Text(model.activeSessions.count > 1 ? L("Andere aktive Sitzungen bleiben bestehen.", "Other active sessions keep running.") : L("Websites und Apps dieser Sitzung sind dann wieder offen.", "Websites and apps in this session open up again."))
         }
     }
 }
@@ -160,7 +160,7 @@ private struct MenuNotices: View {
                 Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
                 Text(model.websiteBlockingTitle).font(.caption)
                 Spacer(minLength: 8)
-                Button("Beheben…") { openSettings.showWebsites(model) }.buttonStyle(.link).font(.caption)
+                Button(L("Beheben…", "Fix…")) { openSettings.showWebsites(model) }.buttonStyle(.link).font(.caption)
             }.padding(.horizontal, 14).padding(.bottom, 10)
         }
         if let failure = model.appBlockFailure {
@@ -182,25 +182,25 @@ private struct MenuQuickStart: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            MenuSectionHeader(title: model.activeSessions.isEmpty ? "Jetzt fokussieren" : "Sitzung hinzufügen")
+            MenuSectionHeader(title: model.activeSessions.isEmpty ? L("Jetzt fokussieren", "Focus now") : L("Sitzung hinzufügen", "Add a session"))
             if model.availableLists.isEmpty {
-                Button("Sperren einrichten…") {
+                Button(L("Sperren einrichten…", "Choose What to Block…")) {
                     openWindow.openMain()
                     if !model.isEditing { model.newList() }
                 }.buttonStyle(.borderedProminent)
             } else {
                 HStack(spacing: 6) {
-                    Picker("Dauer", selection: $model.quickMinutes) {
+                    Picker(L("Dauer", "Duration"), selection: $model.quickMinutes) {
                         ForEach(model.durationChoices, id: \.self) { minutes in
                             Text(MenuFormat.duration(minutes)).tag(minutes)
                         }
                     }.labelsHidden().fixedSize()
-                    Picker("Sperrliste", selection: $model.selectedListID) {
+                    Picker(L("Sperrliste", "Block list"), selection: $model.selectedListID) {
                         ForEach(model.availableLists) { list in
                             Text(list.name).tag(Optional(list.id))
                         }
                     }.labelsHidden().frame(maxWidth: .infinity)
-                    Button("Starten") {
+                    Button(L("Starten", "Start")) {
                         if model.quickOptions.mode == .locked || closesApps { confirmStart = true }
                         else { model.startQuickSession() }
                     }
@@ -210,20 +210,20 @@ private struct MenuQuickStart: View {
                 }
                 if needsBrowser {
                     HStack(spacing: 6) {
-                        Text("Verbinde einen Browser, um Websites zu sperren.").font(.caption).foregroundStyle(.secondary)
+                        Text(L("Verbinde einen Browser, um Websites zu sperren.", "Connect a browser to block websites.")).font(.caption).foregroundStyle(.secondary)
                         Spacer(minLength: 4)
-                        Button("Einrichten…") { openSettings.showWebsites(model) }.buttonStyle(.link).font(.caption)
+                        Button(L("Einrichten…", "Set Up…")) { openSettings.showWebsites(model) }.buttonStyle(.link).font(.caption)
                     }
                 }
             }
         }
         .padding(.horizontal, 14).padding(.vertical, 10)
-        .confirmationDialog(model.quickOptions.mode == .locked ? "Gesperrte Sitzung starten?" : "Gewählte Apps schließen und starten?",
+        .confirmationDialog(model.quickOptions.mode == .locked ? L("Gesperrte Sitzung starten?", "Start a locked session?") : L("Gewählte Apps schließen und starten?", "Quit the selected apps and start?"),
                             isPresented: $confirmStart, titleVisibility: .visible) {
-            Button("Start \(MenuFormat.duration(model.quickMinutes)) Session") { model.startQuickSession() }
+            Button(L("Start \(MenuFormat.duration(model.quickMinutes)) Session", "Start \(MenuFormat.duration(model.quickMinutes)) Session")) { model.startQuickSession() }
         } message: {
-            Text((model.quickOptions.mode == .locked ? "Du kannst diese Sitzung nicht früher beenden, nur entsperren. " : "")
-                 + (closesApps ? "Speichere vorher. Gewählte Apps werden geschlossen, Ungespeichertes kann verloren gehen." : ""))
+            Text((model.quickOptions.mode == .locked ? L("Du kannst diese Sitzung nicht früher beenden, nur entsperren. ", "You can’t end this session early, only unlock. ") : "")
+                 + (closesApps ? L("Speichere vorher. Gewählte Apps werden geschlossen, Ungespeichertes kann verloren gehen.", "Save first. Selected apps will close and unsaved work may be lost.") : ""))
         }
     }
 }
@@ -237,7 +237,7 @@ private struct MenuSchedules: View {
         let schedules = model.schedulesByNextStart
         VStack(alignment: .leading, spacing: 1) {
             HStack {
-                MenuSectionHeader(title: "Zeitpläne")
+                MenuSectionHeader(title: L("Zeitpläne", "Schedules"))
                 Spacer()
                 Button {
                     openWindow.openMain()
@@ -248,10 +248,10 @@ private struct MenuSchedules: View {
                 } label: {
                     Image(systemName: "plus").frame(width: 22, height: 18)
                 }
-                .buttonStyle(.borderless).help("Neuer Zeitplan").accessibilityLabel("Neuer Zeitplan")
+                .buttonStyle(.borderless).help(L("Neuer Zeitplan", "New Schedule")).accessibilityLabel(L("Neuer Zeitplan", "New Schedule"))
             }.padding(.horizontal, 8).padding(.bottom, 3)
             if schedules.isEmpty {
-                Text("Plan focus time for the days you choose. Geplante Sitzungen laufen bis zum Ende.")
+                Text(L("Plan focus time for the days you choose. Geplante Sitzungen laufen bis zum Ende.", "Plan focus time for the days you choose. Scheduled sessions run to the end."))
                     .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                     .padding(.horizontal, 8).padding(.bottom, 4)
             } else {
@@ -263,7 +263,7 @@ private struct MenuSchedules: View {
                         model.page = .schedules
                         openWindow.openMain()
                     }) {
-                        Text("Alle zeigen: \(schedules.count)").font(.caption).foregroundStyle(.secondary)
+                        Text(L("Alle zeigen: \(schedules.count)", "Show all \(schedules.count)")).font(.caption).foregroundStyle(.secondary)
                     }
                 }
             }
@@ -279,12 +279,12 @@ private struct MenuScheduleRow: View {
     private var running: Bool { model.isRunning(schedule) }
 
     private var trailing: String {
-        if running { return "Jetzt" }
+        if running { return L("Jetzt", "Now") }
         if let next = SessionEngine.nextInterval(for: schedule, after: model.now) {
             return MenuFormat.day(next.start, now: model.now)
         }
-        if !schedule.isEnabled { return "Aus" }
-        return schedule.kind == .once ? "Erledigt" : ""
+        if !schedule.isEnabled { return L("Aus", "Off") }
+        return schedule.kind == .once ? L("Erledigt", "Done") : ""
     }
 
     var body: some View {
@@ -309,7 +309,7 @@ private struct MenuScheduleRow: View {
             }
         }
         .opacity(schedule.isEnabled || running ? 1 : 0.6)
-        .help(running ? "Läuft bis zum Ende. Geplante Sitzungen lassen sich nicht früher beenden." : "Edit \(schedule.name)")
+        .help(running ? L("Läuft bis zum Ende. Geplante Sitzungen lassen sich nicht früher beenden.", "Runs to the end. Scheduled sessions can’t be ended early.") : "Edit \(schedule.name)")
         .accessibilityLabel("\(schedule.name), \(ScheduleFormat.summary(schedule)), \(trailing)")
     }
 }
@@ -393,8 +393,8 @@ enum Countdown {
 enum MenuFormat {
     /// Short enough to keep the duration popup narrow: "25 min", "90 min", "2 hr".
     static func duration(_ minutes: Int) -> String {
-        if minutes < 120 { return "\(minutes) Min" }
-        return minutes % 60 == 0 ? "\(minutes / 60) Std" : "\(minutes / 60) Std \(minutes % 60) Min"
+        if minutes < 120 { return L("\(minutes) Min", "\(minutes) min") }
+        return minutes % 60 == 0 ? L("\(minutes / 60) Std", "\(minutes / 60) h") : L("\(minutes / 60) Std \(minutes % 60) Min", "\(minutes / 60) h \(minutes % 60) min")
     }
 
     /// "in 20 min", "at 9:00 AM", "tomorrow at 9:00 AM", or "Tue at 9:00 AM".
@@ -402,21 +402,21 @@ enum MenuFormat {
         let calendar = Calendar.autoupdatingCurrent
         let time = date.formatted(date: .omitted, time: .shortened)
         let minutes = Int(ceil(date.timeIntervalSince(now) / 60))
-        if minutes <= 60 { return "in \(max(1, minutes)) Min" }
-        if calendar.isDate(date, inSameDayAs: now) { return "um \(time)" }
-        if calendar.isDateInTomorrow(date) { return "morgen um \(time)" }
-        return "\(date.formatted(.dateTime.weekday(.abbreviated))) um \(time)"
+        if minutes <= 60 { return L("in \(max(1, minutes)) Min", "in \(max(1, minutes)) min") }
+        if calendar.isDate(date, inSameDayAs: now) { return L("um \(time)", "at \(time)") }
+        if calendar.isDateInTomorrow(date) { return L("morgen um \(time)", "tomorrow at \(time)") }
+        return L("\(date.formatted(.dateTime.weekday(.abbreviated).locale(AppLanguage.locale))) um \(time)", "\(date.formatted(.dateTime.weekday(.abbreviated).locale(AppLanguage.locale))) at \(time)")
     }
 
     /// A short day label for a list: "in 20 min", "Heute", "Morgen", "Tue", or "Oct 28".
     static func day(_ date: Date, now: Date) -> String {
         let calendar = Calendar.autoupdatingCurrent
         let minutes = Int(ceil(date.timeIntervalSince(now) / 60))
-        if minutes <= 60 { return "in \(max(1, minutes)) Min" }
-        if calendar.isDate(date, inSameDayAs: now) { return "Heute" }
-        if calendar.isDateInTomorrow(date) { return "Morgen" }
-        if date.timeIntervalSince(now) < 6 * 86400 { return date.formatted(.dateTime.weekday(.abbreviated)) }
-        return date.formatted(.dateTime.month(.abbreviated).day())
+        if minutes <= 60 { return L("in \(max(1, minutes)) Min", "in \(max(1, minutes)) min") }
+        if calendar.isDate(date, inSameDayAs: now) { return L("Heute", "Today") }
+        if calendar.isDateInTomorrow(date) { return L("Morgen", "Tomorrow") }
+        if date.timeIntervalSince(now) < 6 * 86400 { return date.formatted(.dateTime.weekday(.abbreviated).locale(AppLanguage.locale)) }
+        return date.formatted(.dateTime.month(.abbreviated).day().locale(AppLanguage.locale))
     }
 }
 

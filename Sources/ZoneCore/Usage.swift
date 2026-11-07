@@ -3,6 +3,14 @@ import Foundation
 public enum UsageCategory: String, CaseIterable, Identifiable, Sendable {
     case work = "Arbeit", neutral = "Neutral", distraction = "Ablenkung"
     public var id: Self { self }
+    /// The raw value is stored on disk; this is what people read.
+    public var title: String {
+        switch self {
+        case .work: L("Arbeit", "Work")
+        case .neutral: "Neutral"
+        case .distraction: L("Ablenkung", "Distraction")
+        }
+    }
 }
 
 public struct UsageTotals: Equatable, Sendable {
@@ -207,22 +215,22 @@ public enum WeekAdvice {
                 && !blocked.contains { DomainRule.matches(host: item.name, domain: $0) }
         }
         for item in unblocked.prefix(2) {
-            result.append(WeekSuggestion(text: "\(item.name) hat dich \(hours(item.seconds)) gekostet und ist nicht gesperrt.", blockDomain: item.name))
+            result.append(WeekSuggestion(text: L("\(item.name) hat dich \(hours(item.seconds)) gekostet und ist nicht gesperrt.", "\(item.name) cost you \(hours(item.seconds)) and is not blocked."), blockDomain: item.name))
         }
         if let peak = current.distractionByHour.enumerated().max(by: { $0.element < $1.element }), peak.element >= 1800 {
-            result.append(WeekSuggestion(text: "Dein schwächster Slot ist \(peak.offset) bis \(peak.offset + 1) Uhr. Leg dort einen Fokusblock oder Hard Mode hin.", blockDomain: nil))
+            result.append(WeekSuggestion(text: L("Dein schwächster Slot ist \(peak.offset) bis \(peak.offset + 1) Uhr. Leg dort einen Fokusblock oder Hard Mode hin.", "Your weakest slot is \(peak.offset):00 to \(peak.offset + 1):00. Put a focus block or Hard Mode there."), blockDomain: nil))
         }
         if unlocks >= 10 {
-            result.append(WeekSuggestion(text: "\(unlocks)× entsperrt. Senk das Tageslimit oder erhöh die Wartezeit in den Einstellungen.", blockDomain: nil))
+            result.append(WeekSuggestion(text: L("\(unlocks)× entsperrt. Senk das Tageslimit oder erhöh die Wartezeit in den Einstellungen.", "Unlocked \(unlocks)×. Lower the daily limit or raise the wait in Settings."), blockDomain: nil))
         }
         if previous.totals.distraction > 0, current.totals.distraction > previous.totals.distraction * 1.25 {
-            result.append(WeekSuggestion(text: "Ablenkung ist mehr als 25 % über der Vorwoche. Schau, welcher Tag das ausgelöst hat.", blockDomain: nil))
+            result.append(WeekSuggestion(text: L("Ablenkung ist mehr als 25 % über der Vorwoche. Schau, welcher Tag das ausgelöst hat.", "Distraction is more than 25 % above last week. Check which day caused it."), blockDomain: nil))
         }
         return result
     }
 
     private static func hours(_ seconds: Double) -> String {
         let minutes = Int(seconds / 60)
-        return minutes < 60 ? "\(minutes) Min" : "\(minutes / 60) Std \(minutes % 60) Min"
+        return minutes < 60 ? L("\(minutes) Min", "\(minutes) min") : L("\(minutes / 60) Std \(minutes % 60) Min", "\(minutes / 60) h \(minutes % 60) min")
     }
 }
