@@ -34,6 +34,10 @@ Fokus ist ein lokaler Website-Blocker und Zeit-Tracker für den Mac. Er sperrt A
 
 ![Kategorien und Regeln](docs/images/screens/kategorien-hell.png)
 
+## Assistent in der App
+
+Unter „Assistent“ chattest du direkt in Fokus mit Claude Code über deine Daten, zum Beispiel „Was fällt dir an meiner Woche auf?“. Fokus startet dafür dein installiertes `claude` im Hintergrund, mit dem Fokus-MCP und sonst keinen Werkzeugen: kein Terminal, keine Dateien, keine Änderungen. Voraussetzung ist Claude Code (`npm install -g @anthropic-ai/claude-code`) und einmal `claude` im Terminal zum Anmelden. Codex und lokale Modelle über Ollama sind geplant.
+
 ## Mit Claude über deine Daten reden
 
 Fokus bringt einen MCP-Server mit. Damit kann Claude Desktop oder Claude Code deine Fokus-Daten lesen, und du fragst einfach: „Was fällt dir an meiner Woche auf?“ oder „Wann bin ich am unkonzentriertesten?“. Der Server liest nur, er ändert nichts.

@@ -17,6 +17,7 @@ struct MainView: View {
                 case .lists: BlockListsView(model: model)
                 case .schedules: SchedulesView(model: model)
                 case .categories: CategoriesView(model: model)
+                case .assistant: AssistantView(model: model)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)

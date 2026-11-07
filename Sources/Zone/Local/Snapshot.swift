@@ -28,6 +28,13 @@ enum Snapshot {
             model.insights.weekOffset = 0
             model.quickMinutes = 45
             for page in [ZoneModel.Page.focus, .unlock, .lists, .schedules, .categories] { model.page = page; await capture(page.rawValue) }
+            model.page = .assistant
+            await capture("assistent-leer")
+            if let question = ProcessInfo.processInfo.environment["FOKUS_ASK"] {
+                model.assistant.send(question)
+                for _ in 0..<120 where model.assistant.running { try? await Task.sleep(for: .seconds(1)) }
+                await capture("assistent-antwort")
+            }
             if let window = NSApp.windows.first(where: { $0.isVisible && $0.frame.width > 500 }) {
                 window.setContentSize(NSSize(width: window.frame.width, height: 1500))
                 model.page = .categories

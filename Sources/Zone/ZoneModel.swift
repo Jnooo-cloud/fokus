@@ -9,7 +9,7 @@ final class ZoneModel {
         var id: Self { self }
     }
     enum Page: String, CaseIterable, Identifiable {
-        case dashboard = "Überblick", report = "Wochenbericht", focus = "Fokus", unlock = "Entsperren", lists = "Sperrlisten", schedules = "Zeitpläne", categories = "Kategorien"
+        case dashboard = "Überblick", report = "Wochenbericht", focus = "Fokus", unlock = "Entsperren", lists = "Sperrlisten", schedules = "Zeitpläne", categories = "Kategorien", assistant = "Assistent"
         var id: Self { self }
         var title: String {
             switch self {
@@ -20,6 +20,7 @@ final class ZoneModel {
             case .lists: L("Sperrlisten", "Block Lists")
             case .schedules: L("Zeitpläne", "Schedules")
             case .categories: L("Kategorien", "Categories")
+            case .assistant: L("Assistent", "Assistant")
             }
         }
         var symbol: String {
@@ -31,6 +32,7 @@ final class ZoneModel {
             case .lists: "hand.raised"
             case .schedules: "calendar"
             case .categories: "square.grid.2x2"
+            case .assistant: "sparkles"
             }
         }
     }
@@ -64,6 +66,7 @@ final class ZoneModel {
     let filter = FilterController()
     let browsers = BrowserBlocker()
     let insights: InsightsStore
+    let assistant = AssistantStore()
     @ObservationIgnored let tracker: UsageTracker
     private(set) var websiteMode: WebsiteMode = .browser
     private(set) var changingWebsiteMode = false
