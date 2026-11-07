@@ -68,15 +68,8 @@ final class InsightsStore {
         recent = UsageSummary(days: days, classify: classifier(), group: grouper(), titleRule: categories.matcher).items.filter { $0.seconds >= 60 }
     }
 
-    private func grouper() -> UsageGrouper {
-        let categories = categories, blocked = blocked
-        let fallback = categories.tops.first { $0.rating == .distraction }?.id
-        return { name, isSite in
-            if let id = categories.assignment(name: name, isSite: isSite) { return id }
-            if isSite, blocked.contains(where: { DomainRule.matches(host: name, domain: $0) }) { return fallback }
-            return nil
-        }
-    }
+    private func grouper() -> UsageGrouper { categories.grouper(blocked: blocked) }
+    private func classifier() -> UsageClassifier { categories.classifier(blocked: blocked) }
 
     func refresh(blockedDomains: [String]) {
         blocked = blockedDomains
@@ -88,11 +81,6 @@ final class InsightsStore {
         flush()
         store.removeTitles()
         rebuild()
-    }
-
-    private func classifier() -> UsageClassifier {
-        let group = grouper(), categories = categories
-        return { name, isSite in categories.rating(of: group(name, isSite)) ?? .neutral }
     }
 
     private func rebuild() {

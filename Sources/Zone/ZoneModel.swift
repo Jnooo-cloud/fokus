@@ -129,7 +129,11 @@ final class ZoneModel {
     var hardEndText: String { document.hardMode?.until.formatted(date: .omitted, time: .shortened) ?? "" }
     var attemptsToday: [String: Int] { attempts[Self.dayKey(now)] ?? [:] }
 
-    private static func dayKey(_ date: Date) -> String { date.formatted(.iso8601.year().month().day()) }
+    /// Local calendar day, matching the MCP server; ISO formatting would use UTC.
+    private static func dayKey(_ date: Date) -> String {
+        let parts = Calendar.autoupdatingCurrent.dateComponents([.year, .month, .day], from: date)
+        return String(format: "%04d-%02d-%02d", parts.year ?? 0, parts.month ?? 0, parts.day ?? 0)
+    }
 
     private func recordAttempt(_ host: String) {
         let key = Self.dayKey(Date())

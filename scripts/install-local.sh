@@ -4,6 +4,7 @@
 set -euo pipefail
 cd "${0:A:h:h}"
 DEVELOPER_DIR=${DEVELOPER_DIR:-/Library/Developer/CommandLineTools} swift build -c release --product Fokus
+DEVELOPER_DIR=${DEVELOPER_DIR:-/Library/Developer/CommandLineTools} swift build -c release --product fokus-mcp
 app=/Applications/Fokus.app
 # Your own reverse-DNS ID keeps macOS permissions and settings stable. Put it in .fokus-local
 # (ignored by git) as FOKUS_BUNDLE_ID=com.yourname.fokus, or pass it as an environment variable.
@@ -14,6 +15,8 @@ launchctl bootout "gui/$(id -u)/$label" 2>/dev/null || true
 rm -rf -- "$app"
 mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
 cp .build/release/Fokus "$app/Contents/MacOS/Fokus"
+cp .build/release/fokus-mcp "$app/Contents/MacOS/fokus-mcp"
+codesign --force --sign - --identifier "$label.mcp" "$app/Contents/MacOS/fokus-mcp"
 cp Resources/Blocked.html "$app/Contents/Resources/"
 cp Resources/Zone.icns "$app/Contents/Resources/Fokus.icns"
 cat > "$app/Contents/Info.plist" <<PLIST

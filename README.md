@@ -33,9 +33,32 @@ Fokus ist ein lokaler Website-Blocker und Zeit-Tracker für den Mac. Er sperrt A
 
 ![Kategorien und Regeln](docs/images/screens/kategorien-hell.png)
 
+## Mit Claude über deine Daten reden
+
+Fokus bringt einen MCP-Server mit. Damit kann Claude Desktop oder Claude Code deine Fokus-Daten lesen, und du fragst einfach: „Was fällt dir an meiner Woche auf?“ oder „Wann bin ich am unkonzentriertesten?“. Der Server liest nur, er ändert nichts.
+
+Werkzeuge: `fokus_heute`, `fokus_nutzung`, `fokus_wochenbericht`, `fokus_entsperrungen`, `fokus_einstellungen`, `fokus_seitentitel`.
+
+Claude Code:
+
+```bash
+claude mcp add --scope user fokus -e FOKUS_BUNDLE_ID=com.deinname.fokus -- /Applications/Fokus.app/Contents/MacOS/fokus-mcp
+```
+
+Claude Desktop, in `~/Library/Application Support/Claude/claude_desktop_config.json` unter `mcpServers`:
+
+```json
+"fokus": {
+  "command": "/Applications/Fokus.app/Contents/MacOS/fokus-mcp",
+  "env": { "FOKUS_BUNDLE_ID": "com.deinname.fokus" }
+}
+```
+
+Was Claude abfragt, geht an Anthropic. Das sind Zeiten pro App und Domain, und nur wenn du sie einschaltest auch Seitentitel.
+
 ## Datenschutz
 
-- Keine Analyse, kein Tracking durch Dritte, keine Netzwerkanfragen außer an deinen eigenen Browser.
+- Keine Analyse, kein Tracking durch Dritte. Die App selbst schickt nichts ins Netz.
 - Gespeichert werden Sekunden pro App oder Domain und Stunde, keine vollen Adressen. Seitentitel nur, wenn du sie einschaltest, und du kannst sie jederzeit löschen.
 - Inkognito-Fenster werden nie mit Titel erfasst.
 - Website-Icons sind Buchstaben, damit keine Favicon-Anfrage dein Surfverhalten verrät.

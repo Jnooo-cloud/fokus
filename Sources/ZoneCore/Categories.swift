@@ -177,3 +177,21 @@ public struct CategoryConfig: Codable, Equatable, Sendable {
         return config
     }
 }
+
+extension CategoryConfig {
+    /// Blocked domains without a category count under the first distraction group.
+    public func grouper(blocked: [String]) -> UsageGrouper {
+        let categories = self
+        let fallback = tops.first { $0.rating == .distraction }?.id
+        return { name, isSite in
+            if let id = categories.assignment(name: name, isSite: isSite) { return id }
+            if isSite, blocked.contains(where: { DomainRule.matches(host: name, domain: $0) }) { return fallback }
+            return nil
+        }
+    }
+
+    public func classifier(blocked: [String]) -> UsageClassifier {
+        let group = grouper(blocked: blocked), categories = self
+        return { name, isSite in categories.rating(of: group(name, isSite)) ?? .neutral }
+    }
+}
