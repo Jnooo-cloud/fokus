@@ -240,17 +240,19 @@ private struct RunningSessionCard: View {
                 Text(badge.0).font(.system(size: 11.5, weight: .semibold)).foregroundStyle(badge.1)
                     .padding(.horizontal, 9).padding(.vertical, 4).background(badge.1.opacity(0.14), in: Capsule())
             }
-            HStack(spacing: 22) {
-                CountdownRing(fraction: fraction, label: Countdown.text(until: session.endsAt, now: model.now), size: 128)
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(L("Gesperrt bis \(session.endsAt.formatted(date: .omitted, time: .shortened))", "Blocked until \(session.endsAt.formatted(date: .omitted, time: .shortened))")).font(.system(size: 17, weight: .semibold))
-                    Text(StartSessionCard.contents(of: session.blockList)).font(.system(size: 12.5)).foregroundStyle(Arc.secondary).lineLimit(3)
+            VStack(spacing: 14) {
+                FocusTimer(end: session.endsAt, now: model.now, fraction: fraction)
+                VStack(spacing: 5) {
+                    Text(L("Gesperrt bis \(session.endsAt.formatted(date: .omitted, time: .shortened))", "Blocked until \(session.endsAt.formatted(date: .omitted, time: .shortened))")).font(.system(size: 15, weight: .semibold))
+                    Text(StartSessionCard.contents(of: session.blockList)).font(.system(size: 12.5)).foregroundStyle(Arc.secondary).lineLimit(2)
+                        .multilineTextAlignment(.center)
                     if !model.activeUnlocks.isEmpty {
                         Text(L("Gerade frei: ", "Free right now: ") + model.activeUnlocks.map { $0.domain ?? L("alles", "everything") }.joined(separator: ", "))
                             .font(.system(size: 12)).foregroundStyle(Arc.green)
                     }
                 }
             }
+            .frame(maxWidth: .infinity).padding(.vertical, 6)
             if hard {
                 HardModeCard(model: model).padding(.horizontal, -18).padding(.bottom, -18)
             } else {

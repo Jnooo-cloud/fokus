@@ -249,15 +249,73 @@ struct CountdownRing: View {
 
     var body: some View {
         ZStack {
-            Circle().stroke(Arc.track, lineWidth: 5)
-            Circle().trim(from: 0, to: fraction)
-                .stroke(AngularGradient(colors: Arc.gradientColors + [Arc.gradientColors[0]], center: .center),
-                        style: StrokeStyle(lineWidth: 5, lineCap: .round))
-                .rotationEffect(.degrees(-90))
-                .animation(.linear(duration: 1), value: fraction)
+            ProgressRing(fraction: fraction, lineWidth: 6)
             Text(label).font(.system(size: size * 0.3, weight: .light, design: .rounded)).monospacedDigit()
-                .foregroundStyle(Arc.ink).contentTransition(.numericText(countsDown: true))
+                .foregroundStyle(Arc.ink).lineLimit(1).minimumScaleFactor(0.5).frame(width: size * 0.7)
         }.frame(width: size, height: size)
+    }
+}
+
+/// Track, gradient arc and a soft glowing tip; the arc eases between ticks so it never steps.
+struct ProgressRing: View {
+    let fraction: Double
+    var lineWidth: CGFloat = 10
+
+    var body: some View {
+        GeometryReader { proxy in
+            let side = min(proxy.size.width, proxy.size.height)
+            let value = max(0.001, min(1, fraction))
+            ZStack {
+                Circle().stroke(Arc.track, lineWidth: lineWidth)
+                Circle().trim(from: 0, to: value)
+                    .stroke(AngularGradient(colors: Arc.gradientColors, center: .center, startAngle: .degrees(0), endAngle: .degrees(360 * value)),
+                            style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+                Circle().fill(Arc.gradientColors[1]).frame(width: lineWidth * 1.15, height: lineWidth * 1.15)
+                    .shadow(color: Arc.gradientColors[1].opacity(0.6), radius: lineWidth)
+                    .offset(y: -side / 2)
+                    .rotationEffect(.degrees(360 * value))
+            }
+            .frame(width: side, height: side)
+            .animation(.linear(duration: 1), value: value)
+        }
+    }
+}
+
+/// The big session timer: hours and minutes large, seconds small, so it never wraps or jumps in width.
+struct FocusTimer: View {
+    let end: Date
+    let now: Date
+    let fraction: Double
+    var size: CGFloat = 196
+
+    private var parts: (main: String, seconds: String) {
+        let left = max(0, Int(ceil(end.timeIntervalSince(now))))
+        let hours = left / 3600, minutes = left / 60 % 60, seconds = left % 60
+        return hours > 0 ? (String(format: "%d:%02d", hours, minutes), String(format: "%02d", seconds))
+                         : (String(format: "%d:%02d", minutes, seconds), "")
+    }
+
+    var body: some View {
+        ZStack {
+            ProgressRing(fraction: fraction, lineWidth: 10)
+            VStack(spacing: 2) {
+                HStack(alignment: .firstTextBaseline, spacing: 2) {
+                    Text(parts.main).font(.system(size: size * 0.24, weight: .semibold, design: .rounded)).tracking(-1)
+                    if !parts.seconds.isEmpty {
+                        Text(parts.seconds).font(.system(size: size * 0.1, weight: .medium, design: .rounded)).foregroundStyle(Arc.secondary)
+                    }
+                }
+                .monospacedDigit().lineLimit(1).minimumScaleFactor(0.6)
+                Text(end.timeIntervalSince(now) >= 3600 ? L("Std verbleibend", "hours left") : L("Min verbleibend", "minutes left"))
+                    .font(.system(size: 11.5, weight: .medium)).foregroundStyle(Arc.tertiary)
+            }
+            .frame(width: size * 0.72)
+        }
+        .frame(width: size, height: size)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(L("Restzeit", "Time remaining"))
+        .accessibilityValue(Countdown.text(until: end, now: now))
     }
 }
 
