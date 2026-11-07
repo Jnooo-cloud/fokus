@@ -1,0 +1,13 @@
+.build/
+.DS_Store
+build/
+*.xcodeproj/
+*.xcworkspace/
+Signing.xcconfig
+Config/Signing.xcconfig
+*.provisionprofile
+*.mobileprovision
+*.p12
+*.p8
+.fokus-local
+.agent-log/
