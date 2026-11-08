@@ -11,3 +11,4 @@ Config/Signing.xcconfig
 *.p8
 .fokus-local
 .agent-log/
+dist/

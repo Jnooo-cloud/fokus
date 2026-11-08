@@ -122,3 +122,7 @@ Der Kern (Sitzungen, Regeln, Kategorien, Auswertung) liegt in `Sources/ZoneCore`
 Fokus basiert auf [Zone](https://github.com/morajabi/zone) von Mo Rajabi, das Sitzungen, Zeitpläne und die Tab-Umleitung mitbringt. Die ursprüngliche README liegt in [docs/zone-README.md](docs/zone-README.md).
 
 MIT-Lizenz, siehe [LICENSE](LICENSE).
+
+## Weitergeben und Updates
+
+`scripts/release.sh 0.3.0` baut `dist/0.3.0/Fokus-0.3.0.dmg` (zum Weitergeben) und das signierte Update-Archiv. Mit `--publish` landet beides als Release in `Jnooo-cloud/fokus-releases`. Installierte Apps prüfen dort alle 6 Stunden und bieten das Update mit einem Klick an. Der Signaturschlüssel liegt im Schlüsselbund (`swift scripts/update-key.swift public`), ohne ihn lehnen installierte Apps Updates ab. Beim ersten Start führt ein Onboarding durch Browser-Freigabe, erste Sperrliste und Autostart.

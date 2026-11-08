@@ -5,12 +5,23 @@ import ZoneCore
 @main
 struct ZoneApp: App {
     @NSApplicationDelegateAdaptor(ZoneAppDelegate.self) private var delegate
-    @State private var model = ZoneModel()
+    @State private var model: ZoneModel
+
+    init() {
+        let env = ProcessInfo.processInfo.environment
+        // Demos and tests run next to the real app on purpose.
+        let isTool = env["FOKUS_SNAPSHOT"] != nil || env["FOKUS_ASK"] != nil || env["FOKUS_DATA_DIR"] != nil
+        if !isTool && !Autostart.claimSingleInstance(onHandOver: {
+            (NSApp.delegate as? ZoneAppDelegate)?.model?.tracker.flush()
+            exit(0)
+        }) { exit(0) }
+        _model = State(initialValue: ZoneModel())
+    }
 
     var body: some Scene {
         Window("Fokus", id: "main") {
             MainView(model: model)
-                .onAppear { delegate.model = model; Snapshot.run(model: model) }
+                .onAppear { delegate.model = model; model.updater.start(); Snapshot.run(model: model) }
         }
         .defaultSize(width: 920, height: 680)
         .windowStyle(.hiddenTitleBar)

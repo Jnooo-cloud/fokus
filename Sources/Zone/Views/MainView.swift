@@ -33,6 +33,8 @@ struct MainView: View {
         .ignoresSafeArea(edges: .top)
         .background(Arc.sidebar.ignoresSafeArea())
         .frame(minWidth: 760, minHeight: 560)
+        .overlay { if model.showOnboarding { OnboardingView(model: model).transition(.opacity) } }
+        .animation(.easeOut(duration: 0.25), value: model.showOnboarding)
         .sheet(item: $model.editingList) { BlockListEditor(model: model, list: $0) }
         .sheet(item: $model.editingSchedule) { ScheduleEditor(model: model, schedule: $0) }
         .modifier(ErrorPresenter(model: model))
@@ -63,6 +65,7 @@ private struct Sidebar: View {
                 .font(.system(size: 12.5)).foregroundStyle(Arc.secondary)
                 .padding(.horizontal, 10).padding(.vertical, 8).contentShape(Rectangle())
             }.buttonStyle(.plain)
+            if model.updater.latest != nil { UpdateBadge(model: model) }
             ThemeToggle()
             SidebarStatus(model: model)
         }
@@ -135,5 +138,34 @@ private struct SidebarStatus: View {
         .padding(.horizontal, 10).padding(.vertical, 9)
         .background(Arc.surface, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(Arc.border, lineWidth: 1))
+    }
+}
+
+private struct UpdateBadge: View {
+    let model: ZoneModel
+    private var busy: Bool { model.updater.state == .downloading || model.updater.state == .installing }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(L("Version \(model.updater.latest?.version ?? "") ist da", "Version \(model.updater.latest?.version ?? "") is out"))
+                .font(.system(size: 12, weight: .semibold)).foregroundStyle(Arc.ink)
+            if case .failed(let message) = model.updater.state {
+                Text(message).font(.system(size: 11)).foregroundStyle(Arc.rose).fixedSize(horizontal: false, vertical: true)
+            }
+            Button {
+                model.installUpdate()
+            } label: {
+                HStack(spacing: 6) {
+                    if busy { ProgressView().controlSize(.mini) }
+                    Text(busy ? L("Aktualisiere…", "Updating…") : L("Jetzt aktualisieren", "Update Now"))
+                }
+            }
+            .buttonStyle(ArcButtonStyle(kind: .primary, wide: true))
+            .disabled(busy)
+            .help(model.updater.latest?.notes ?? "")
+        }
+        .padding(10)
+        .background(Arc.glowCard, in: RoundedRectangle(cornerRadius: Arc.controlRadius, style: .continuous))
+        .padding(.bottom, 6)
     }
 }

@@ -6,6 +6,7 @@ enum FokusPaths {
         if let custom = ProcessInfo.processInfo.environment["FOKUS_DATA_DIR"], !custom.isEmpty {
             return URL(fileURLWithPath: custom, isDirectory: true)
         }
-        return FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("Fokus")
+        return FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent(Bundle.main.object(forInfoDictionaryKey: "FokusDataFolder") as? String ?? "Fokus")
     }
 }

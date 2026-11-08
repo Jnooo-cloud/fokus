@@ -65,6 +65,10 @@ final class ZoneModel {
     var appBlockFailure: String?
     let filter = FilterController()
     let browsers = BrowserBlocker()
+    let updater = Updater()
+    static let onboardingKey = "onboardingDone"
+    var showOnboarding = false
+    var onboardingStep = 0
     let insights: InsightsStore
     let assistant = AssistantStore()
     @ObservationIgnored let tracker: UsageTracker
@@ -92,12 +96,18 @@ final class ZoneModel {
             errorMessage = L("Fokus konnte die gespeicherten Sitzungen nicht lesen. Die Datei bleibt erhalten. \(error.localizedDescription)", "Fokus could not read its saved sessions. The file is kept. \(error.localizedDescription)")
         }
         if isFirstRun { document = Self.starterDocument(); try? store.save(document) }
+        // People who used Fokus before onboarding existed skip it.
+        if !isFirstRun && UserDefaults.standard.object(forKey: Self.onboardingKey) == nil {
+            UserDefaults.standard.set(true, forKey: Self.onboardingKey)
+        }
+        showOnboarding = !UserDefaults.standard.bool(forKey: Self.onboardingKey) && ProcessInfo.processInfo.environment["FOKUS_SNAPSHOT"] == nil
         quickMinutes = document.defaultMinutes
         quickOptions = document.defaultOptions
         let previousList = UserDefaults.standard.string(forKey: "selectedListID").flatMap(UUID.init(uuidString:))
         selectedListID = document.blockLists.first(where: { $0.id == previousList && !$0.isEmpty })?.id
             ?? document.blockLists.first(where: { !$0.isEmpty })?.id ?? document.blockLists.first?.id
         browsers.onRedirect = { [weak self] host in self?.recordAttempt(host) }
+        updater.onTestInstall = { [weak self] in self?.installUpdate() }
         blocker.onBlocked = { [weak self] name in self?.lastBlockedApp = name; self?.appBlockFailure = nil }
         blocker.onFailure = { [weak self] name in self?.appBlockFailure = L("\(name) ließ sich nicht schließen.", "\(name) could not be closed.") }
         tick()
@@ -410,7 +420,14 @@ final class ZoneModel {
 
     /// Scheduled sessions are strict: their schedule stays as it is until the session ends.
     static func runningScheduleMessage(_ session: FocusSession) -> String {
-        L("This schedule is running. You can change it after it ends at \(session.endsAt.formatted(date: .omitted, time: .shortened)).", "This schedule is running. You can change it after it ends at \(session.endsAt.formatted(date: .omitted, time: .shortened)).")
+        L("Dieser Zeitplan läuft gerade. Ändern kannst du ihn, wenn er um \(session.endsAt.formatted(date: .omitted, time: .shortened)) endet.", "This schedule is running. You can change it after it ends at \(session.endsAt.formatted(date: .omitted, time: .shortened)).")
+    }
+
+    func installUpdate() {
+        let reason = hasStrictSession || isHard
+            ? L("Update nach dem Ende deiner gesperrten Sitzung oder des Hard Mode möglich.", "You can update after your locked session or Hard Mode ends.")
+            : nil
+        Task { await updater.install(blockedReason: reason) { tracker.flush() } }
     }
 
     func quit() {
@@ -421,7 +438,7 @@ final class ZoneModel {
             alert.informativeText = websiteMode == .browser
                 ? L("Laufende Sitzungen enden. Geplante Sitzungen brauchen ein laufendes Fokus.", "Current sessions will end. Scheduled sessions need Fokus running.")
                 : "Current sessions will end. App schedules need Zone running. Website schedules can continue in the network filter."
-            alert.addButton(withTitle: L("Sitzung beendens and Quit", "End Sessions and Quit"))
+            alert.addButton(withTitle: L("Beenden und schließen", "End Sessions and Quit"))
             alert.addButton(withTitle: L("Abbrechen", "Cancel"))
             guard alert.runModal() == .alertFirstButtonReturn else { return }
             var next = document

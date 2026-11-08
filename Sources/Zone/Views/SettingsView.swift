@@ -68,6 +68,7 @@ private struct GeneralSettings: View {
                 Toggle(L("Grund verlangen", "Ask for a reason"), isOn: binding(\.requiresReason))
                 if model.isHard { Text(L("Während Hard Mode gesperrt.", "Locked during Hard Mode.")).font(.caption).foregroundStyle(.secondary) }
             }.disabled(model.isHard)
+            UpdateSettings(model: model)
             Section(L("Datenschutz", "Privacy")) {
                 Text(L("Listen und Zeiten bleiben auf diesem Mac. Kein Konto, keine Analyse, keine Cloud.", "Lists and times stay on this Mac. No account, no analytics, no cloud."))
                     .foregroundStyle(.secondary)
@@ -100,7 +101,7 @@ private struct BrowserSettings: View {
     }
 }
 
-private struct BrowserPermissionRow: View {
+struct BrowserPermissionRow: View {
     let browser: SupportedBrowser
     let blocker: BrowserBlocker
     private var access: BrowserAccess { blocker.access[browser.id] ?? .notRunning }
@@ -128,6 +129,51 @@ private struct BrowserPermissionRow: View {
             } else {
                 Button(L("Verbinden…", "Connect…")) { blocker.connect(browser) }.accessibilityLabel("Connect \(browser.name)")
             }
+        }
+    }
+}
+
+private struct UpdateSettings: View {
+    let model: ZoneModel
+    @State private var autostart = Autostart.isInstalled
+    private var updater: Updater { model.updater }
+
+    var body: some View {
+        Section(L("App", "App")) {
+            Toggle(L("Beim Anmelden starten", "Start at login"), isOn: $autostart)
+                .onChange(of: autostart) { _, on in
+                    if on { do { try Autostart.install() } catch { model.errorMessage = error.localizedDescription; autostart = false } }
+                    else { Autostart.remove() }
+                }
+                .disabled(!Autostart.isInstalledLocation)
+            LabeledContent(L("Version", "Version"), value: updater.current)
+            if updater.isEnabled {
+                HStack {
+                    Text(statusText).foregroundStyle(.secondary)
+                    Spacer()
+                    if updater.latest != nil && updater.state != .downloading && updater.state != .installing {
+                        Button(L("Jetzt aktualisieren", "Update Now")) { model.installUpdate() }
+                    } else {
+                        Button(L("Nach Updates suchen", "Check for Updates")) { Task { await updater.check() } }
+                            .disabled(updater.state == .checking || updater.state == .downloading || updater.state == .installing)
+                    }
+                }
+            } else {
+                Text(L("Eigener Build: Updates kommen über scripts/install-local.sh.", "Own build: update with scripts/install-local.sh."))
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private var statusText: String {
+        switch updater.state {
+        case .idle: L("Noch nicht geprüft", "Not checked yet")
+        case .checking: L("Prüfe…", "Checking…")
+        case .upToDate: L("Aktuell", "Up to date")
+        case .available: L("Version \(updater.latest?.version ?? "") verfügbar", "Version \(updater.latest?.version ?? "") available")
+        case .downloading: L("Lade herunter…", "Downloading…")
+        case .installing: L("Installiere…", "Installing…")
+        case .failed(let message): message
         }
     }
 }

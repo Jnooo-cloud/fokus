@@ -20,6 +20,11 @@ enum Snapshot {
                 let host = page.map { "\($0.host) | \($0.title ?? "-")" } ?? "nil"
                 try? host.write(toFile: "\(directory)/host.txt", atomically: true, encoding: .utf8)
             }
+            if ProcessInfo.processInfo.environment["FOKUS_SNAPSHOT_ONBOARDING"] != nil {
+                model.showOnboarding = true
+                for step in 0..<4 { model.onboardingStep = step; await capture("onboarding-\(step + 1)") }
+                exit(0)
+            }
             await capture("dashboard")
             model.page = .report
             await capture("report")
