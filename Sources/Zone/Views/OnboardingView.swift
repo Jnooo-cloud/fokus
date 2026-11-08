@@ -146,7 +146,7 @@ struct OnboardingView: View {
                     Text(L("Automatisch Mo bis Fr, 9 bis 17 Uhr sperren", "Block automatically Mon to Fri, 9 to 5"))
                     Text(L("Lässt sich unter Zeitpläne jederzeit ändern.", "You can change this anytime under Schedules."))
                         .font(.caption).foregroundStyle(Arc.secondary)
-                }
+                }.frame(maxWidth: .infinity, alignment: .leading)
             }
             .toggleStyle(.switch)
             .disabled(!model.browsers.hasConnectedBrowser)

@@ -23,10 +23,16 @@ mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
 cp .build/release/Fokus .build/release/fokus-mcp "$app/Contents/MacOS/"
 cp Resources/Blocked.html "$app/Contents/Resources/"
 cp Resources/Zone.icns "$app/Contents/Resources/Fokus.icns"
+# The browser permission prompt shows this text in the Mac's language.
+mkdir -p "$app/Contents/Resources/en.lproj" "$app/Contents/Resources/de.lproj"
+print '"NSAppleEventsUsageDescription" = "Fokus reads tab addresses, redirects blocked websites and counts time per domain, all on this Mac.";' > "$app/Contents/Resources/en.lproj/InfoPlist.strings"
+print '"NSAppleEventsUsageDescription" = "Fokus liest Tab-Adressen, leitet gesperrte Websites um und zählt Zeit pro Domain, alles auf diesem Mac.";' > "$app/Contents/Resources/de.lproj/InfoPlist.strings"
 cat > "$app/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
+  <key>CFBundleDevelopmentRegion</key><string>en</string>
+  <key>CFBundleLocalizations</key><array><string>en</string><string>de</string></array>
   <key>CFBundleExecutable</key><string>Fokus</string>
   <key>CFBundleIdentifier</key><string>$bundle_id</string>
   <key>CFBundleName</key><string>Fokus</string>
@@ -39,7 +45,7 @@ cat > "$app/Contents/Info.plist" <<PLIST
   <key>LSUIElement</key><true/>
   <key>NSPrincipalClass</key><string>NSApplication</string>
   <key>NSHumanReadableCopyright</key><string>MIT License. Based on Zone by Mo Rajabi.</string>
-  <key>NSAppleEventsUsageDescription</key><string>Fokus liest Tab-Adressen, leitet gesperrte Websites um und zählt Zeit pro Domain lokal.</string>
+  <key>NSAppleEventsUsageDescription</key><string>Fokus reads tab addresses, redirects blocked websites and counts time per domain, all on this Mac.</string>
   <key>FokusUpdateRepo</key><string>$repo</string>
   <key>FokusUpdateKey</key><string>$public_key</string>${FOKUS_DATA_FOLDER:+
   <key>FokusDataFolder</key><string>$FOKUS_DATA_FOLDER</string>}
@@ -56,7 +62,7 @@ swift scripts/update-key.swift sign "$out/Fokus-$version.zip" > "$out/Fokus-$ver
 stage=$out/dmg
 mkdir -p "$stage/.background"
 ditto "$app" "$stage/Fokus.app"
-ln -s /Applications "$stage/Programme"
+ln -s /Applications "$stage/Applications"
 swift scripts/dmg-background.swift "$stage/.background/background.png"
 hdiutil create -quiet -volname Fokus -srcfolder "$stage" -fs HFS+ -format UDRW "$out/rw.dmg"
 device=$(hdiutil attach -readwrite -noverify -noautoopen "$out/rw.dmg" | awk '/\/Volumes\/Fokus/ {print $1; exit}')
@@ -74,7 +80,7 @@ tell application "Finder"
     set icon size of opts to 96
     set background picture of opts to file ".background:background.png"
     set position of item "Fokus.app" of container window to {190, 170}
-    set position of item "Programme" of container window to {450, 170}
+    set position of item "Applications" of container window to {450, 170}
     update without registering applications
     delay 1
     close
