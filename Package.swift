@@ -13,7 +13,7 @@ let package = Package(
         .target(name: "ZoneCore"),
         // Built with the Command Line Tools alone, so no Xcode is needed for the local app.
         .executableTarget(name: "Fokus", dependencies: ["ZoneCore"], path: ".",
-                          exclude: ["Sources/Zone/FilterController.swift"], sources: ["Sources/Zone", "Shared"]),
+                          exclude: ["Sources/Zone/FilterController.swift", "dist"], sources: ["Sources/Zone", "Shared"]),
         // Read-only MCP server so Claude can look at the same data the app shows.
         .executableTarget(name: "FokusMCP", dependencies: ["ZoneCore"],
                           // A single-threaded stdio loop; strict actor checks add nothing here.

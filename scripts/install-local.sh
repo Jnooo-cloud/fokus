@@ -3,8 +3,8 @@
 # running: launchd restarts it after a crash or force quit, but not after a normal quit.
 set -euo pipefail
 cd "${0:A:h:h}"
-DEVELOPER_DIR=${DEVELOPER_DIR:-/Library/Developer/CommandLineTools} swift build -c release --product Fokus
-DEVELOPER_DIR=${DEVELOPER_DIR:-/Library/Developer/CommandLineTools} swift build -c release --product fokus-mcp
+DEVELOPER_DIR=${DEVELOPER_DIR:-$([[ -d /Applications/Xcode.app ]] && print /Applications/Xcode.app/Contents/Developer || print /Library/Developer/CommandLineTools)} swift build -c release --product Fokus
+DEVELOPER_DIR=${DEVELOPER_DIR:-$([[ -d /Applications/Xcode.app ]] && print /Applications/Xcode.app/Contents/Developer || print /Library/Developer/CommandLineTools)} swift build -c release --product fokus-mcp
 app=/Applications/Fokus.app
 # Your own reverse-DNS ID keeps macOS permissions and settings stable. Put it in .fokus-local
 # (ignored by git) as FOKUS_BUNDLE_ID=com.yourname.fokus, or pass it as an environment variable.

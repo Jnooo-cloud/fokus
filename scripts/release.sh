@@ -7,9 +7,9 @@ set -euo pipefail
 cd "${0:A:h:h}"
 version=${1:?Version fehlt, z. B. scripts/release.sh 0.2.0}
 publish=${2:-}
-export DEVELOPER_DIR=${DEVELOPER_DIR:-/Library/Developer/CommandLineTools}
+export DEVELOPER_DIR=${DEVELOPER_DIR:-$([[ -d /Applications/Xcode.app ]] && print /Applications/Xcode.app/Contents/Developer || print /Library/Developer/CommandLineTools)}
 bundle_id=${FOKUS_RELEASE_ID:-de.jannikhiller.fokus}
-repo=${FOKUS_RELEASE_REPO:-Jnooo-cloud/fokus-releases}
+repo=${FOKUS_RELEASE_REPO:-Jnooo-cloud/fokus}
 out=dist/$version
 [[ -e $out ]] && { print "dist/$version gibt es schon. Neue Versionsnummer nehmen."; exit 1; }
 mkdir -p "$out"
@@ -21,7 +21,7 @@ swift build -c release --product fokus-mcp
 app=$out/Fokus.app
 mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
 cp .build/release/Fokus .build/release/fokus-mcp "$app/Contents/MacOS/"
-cp Resources/Blocked.html "$app/Contents/Resources/"
+cp Resources/Blocked.html LICENSE "$app/Contents/Resources/"
 cp Resources/Zone.icns "$app/Contents/Resources/Fokus.icns"
 # The browser permission prompt shows this text in the Mac's language.
 mkdir -p "$app/Contents/Resources/en.lproj" "$app/Contents/Resources/de.lproj"

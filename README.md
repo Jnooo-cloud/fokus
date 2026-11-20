@@ -1,94 +1,119 @@
 # Fokus
 
-Fokus ist ein lokaler Website-Blocker und Zeit-Tracker für den Mac. Er sperrt Ablenkungen in Chrome, Safari und Edge, ohne Browser-Extension, und zeigt dir, wo deine Zeit am Rechner wirklich hingeht. Kein Konto, keine Cloud, kein Abo. Alles bleibt auf deinem Mac.
+**A local website blocker and screen time tracker for macOS.** Fokus blocks distracting sites in Chrome, Safari and Edge without a browser extension, and shows you where your time on the Mac actually goes, per app and per website, hour by hour. No account, no cloud, no subscription. Everything stays on your Mac.
 
-*English: Fokus is a local, extension-free website blocker and time tracker for macOS. The app speaks German and English, switchable in Settings.*
+It also ships an MCP server, so Claude (or any MCP client) can read your usage data and answer questions like "When do I lose focus during the week?".
 
-![Überblick im dunklen Design](docs/images/screens/ueberblick-dunkel.png)
+English and German, follows your Mac's language.
 
-## Was Fokus kann
+![Overview in dark mode](docs/images/screens/ueberblick-dunkel.png)
 
-**Sperren**
-- Sitzungen mit fester Dauer oder bis zu einer Uhrzeit, drei Stufen: Flexibel, Durchziehen, Hard Mode
-- Zeitpläne, die von selbst starten, zum Beispiel Mo bis Fr von 9 bis 17 Uhr
-- Ausnahmen pro Subdomain: facebook.com gesperrt, business.facebook.com offen
-- Nur-erlaubte-Seiten-Modus: alles gesperrt außer deinen Ausnahmen
-- Apps sperren, sie werden beim Öffnen geschlossen
-- Entsperren mit Reibung: Grund angeben, warten, halten. Die Wartezeit wächst mit jeder Freigabe am Tag, dazu gibt es ein Tageslimit
-- Hard Mode: kein Beenden, kein Entsperren, nur ein Notausgang mit 5 Minuten Wartezeit
-- Startet nach einem Absturz oder Sofort-Beenden von selbst neu
+## Download
 
-**Verstehen**
-- Zeit pro App und pro Website, Stunde für Stunde
-- Fokus-Score, Tagesverlauf, Vergleich mit gestern
-- Wochenbericht mit Heatmap, Zeitfressern und konkreten Vorschlägen
-- Eigene Kategorien mit Unterkategorien, zum Beispiel Ablenkung › Shopping
-- Optional Seitentitel speichern und Regeln danach, zum Beispiel „YouTube mit Tutorial im Titel zählt als Recherche“
-- Zählt Sperrversuche und speichert, warum du entsperrt hast
-- Helles und dunkles Design
-- Deutsch und Englisch, umschaltbar unter Einstellungen → Allgemein → Sprache
+[**Latest release**](https://github.com/Jnooo-cloud/fokus/releases/latest) → `Fokus-<version>.dmg`
+
+1. Open the DMG and drag Fokus into Applications.
+2. Open Fokus. macOS blocks it the first time because it is not notarized yet. Close the warning with "Done".
+3. System Settings → Privacy & Security → scroll down → next to "Fokus was blocked", click "Open Anyway".
+4. Onboarding walks you through the browser permission, your first block list and launch at login.
+
+Requires macOS 15 or later. Installed apps check for updates every 6 hours and install them with one click. Every update is signed, and the app rejects archives that don't match the key built into it.
+
+## Features
+
+**Blocking**
+- Sessions with a fixed duration or until a set time, in three levels: Flexible, Commit and Hard Mode
+- Schedules that start on their own, e.g. Mon to Fri, 9 to 5
+- Per-subdomain exceptions: block facebook.com, keep business.facebook.com open
+- Allowlist mode: everything is blocked except your exceptions
+- Block apps, they get closed when opened
+- Unlocking takes friction: give a reason, wait, hold. The wait grows with every unlock that day, and there is a daily limit
+- Hard Mode: no quitting, no unlocking, only an emergency exit with a 5 minute wait
+- Restarts itself after a crash or force quit
+
+**Tracking**
+- Time per app and per website, hour by hour, including Chrome app windows
+- Focus score, daily timeline, comparison with yesterday
+- Weekly report with a heatmap, your biggest time sinks and concrete suggestions
+- Your own categories with subcategories, e.g. Distraction › Shopping
+- Optional page titles with rules on top, e.g. "YouTube with *tutorial* in the title counts as research"
+- Counts blocked attempts and stores why you unlocked
+- Light and dark mode
 
 | | |
 |---|---|
-| ![Fokus starten](docs/images/screens/fokus-hell.png) | ![Wochenbericht](docs/images/screens/woche-dunkel.png) |
+| ![Start a focus session](docs/images/screens/fokus-hell.png) | ![Weekly report](docs/images/screens/woche-dunkel.png) |
 
-![Kategorien und Regeln](docs/images/screens/kategorien-hell.png)
+![Categories and rules](docs/images/screens/kategorien-hell.png)
 
-## Assistent in der App
+## Talk to Claude about your screen time
 
-Unter „Assistent“ chattest du direkt in Fokus mit Claude Code über deine Daten, zum Beispiel „Was fällt dir an meiner Woche auf?“. Fokus startet dafür dein installiertes `claude` im Hintergrund, mit dem Fokus-MCP und sonst keinen Werkzeugen: kein Terminal, keine Dateien, keine Änderungen. Voraussetzung ist Claude Code (`npm install -g @anthropic-ai/claude-code`) und einmal `claude` im Terminal zum Anmelden. Codex und lokale Modelle über Ollama sind geplant.
-
-## Mit Claude über deine Daten reden
-
-Fokus bringt einen MCP-Server mit. Damit kann Claude Desktop oder Claude Code deine Fokus-Daten lesen, und du fragst einfach: „Was fällt dir an meiner Woche auf?“ oder „Wann bin ich am unkonzentriertesten?“. Der Server liest nur, er ändert nichts.
-
-Werkzeuge: `fokus_heute`, `fokus_nutzung`, `fokus_wochenbericht`, `fokus_entsperrungen`, `fokus_einstellungen`, `fokus_seitentitel`.
+Fokus includes a read-only MCP server (`fokus-mcp`). Tools: `fokus_heute` (today), `fokus_nutzung` (usage), `fokus_wochenbericht` (weekly report), `fokus_entsperrungen` (unlocks), `fokus_einstellungen` (settings), `fokus_seitentitel` (page titles).
 
 Claude Code:
 
 ```bash
-claude mcp add --scope user fokus -e FOKUS_BUNDLE_ID=com.deinname.fokus -- /Applications/Fokus.app/Contents/MacOS/fokus-mcp
+claude mcp add --scope user fokus -e FOKUS_BUNDLE_ID=de.jannikhiller.fokus -- /Applications/Fokus.app/Contents/MacOS/fokus-mcp
 ```
 
-Claude Desktop, in `~/Library/Application Support/Claude/claude_desktop_config.json` unter `mcpServers`:
+Claude Desktop, in `~/Library/Application Support/Claude/claude_desktop_config.json` under `mcpServers`:
 
 ```json
 "fokus": {
   "command": "/Applications/Fokus.app/Contents/MacOS/fokus-mcp",
-  "env": { "FOKUS_BUNDLE_ID": "com.deinname.fokus" }
+  "env": { "FOKUS_BUNDLE_ID": "de.jannikhiller.fokus" }
 }
 ```
 
-Was Claude abfragt, geht an Anthropic. Das sind Zeiten pro App und Domain, und nur wenn du sie einschaltest auch Seitentitel.
+If you built Fokus yourself, use the bundle ID from your `.fokus-local`.
 
-## Datenschutz
+There is also a chat tab inside the app ("Assistant"). It runs your installed Claude Code in the background with only the Fokus MCP attached: no terminal, no file access, no changes. You need Claude Code installed (`npm install -g @anthropic-ai/claude-code`) and logged in once.
 
-- Keine Analyse, kein Tracking durch Dritte. Die App selbst schickt nichts ins Netz.
-- Gespeichert werden Sekunden pro App oder Domain und Stunde, keine vollen Adressen. Seitentitel nur, wenn du sie einschaltest, und du kannst sie jederzeit löschen.
-- Inkognito-Fenster werden nie mit Titel erfasst.
-- Website-Icons sind Buchstaben, damit keine Favicon-Anfrage dein Surfverhalten verrät.
-- Daten liegen in `~/Library/Application Support/Fokus/`.
+Whatever Claude reads goes to Anthropic. That is time per app and domain, plus page titles only if you turned them on.
 
-## Installation
+## Privacy
 
-Fokus ist noch nicht von Apple notarisiert. Du baust es selbst, das dauert ein paar Minuten.
+- No analytics, no third-party tracking. The app itself sends nothing over the network, except the update check against this repo's releases.
+- It stores seconds per app or domain per hour, not full URLs. Page titles only if you turn them on, and you can delete them any time.
+- Incognito windows are never recorded with titles.
+- Website icons are letters, so no favicon request leaks your browsing.
+- Data lives in `~/Library/Application Support/Fokus/`.
 
-Voraussetzungen: macOS 15 oder neuer und die Command Line Tools (`xcode-select --install`). Xcode brauchst du nicht.
+## How it works
+
+Fokus reads the active tab's address through AppleScript (with your permission) every few seconds. Blocked sites get redirected to a local block page, and time gets counted per domain. There is no extension to disable and no proxy in between. Idle time (3 minutes without input) and a locked screen are not counted.
+
+## Limits
+
+- Blocking works while Fokus is running. Firefox can only be blocked as a whole app.
+- A network filter that covers every browser exists in the code, but it needs a paid Apple Developer account and is off in this version.
+- An admin who really wants to can get around it. Fokus is meant to add friction, not to be a prison.
+- Tested on Apple Silicon with macOS 27 and Chrome. Safari and Edge are supported but less tested.
+
+## Build from source
+
+Requires macOS 15+ and Xcode or the Command Line Tools (`xcode-select --install`).
 
 ```bash
-git clone <dieses-repo> fokus
+git clone https://github.com/Jnooo-cloud/fokus.git
 cd fokus
-echo 'FOKUS_BUNDLE_ID=com.deinname.fokus' > .fokus-local
+echo 'FOKUS_BUNDLE_ID=com.yourname.fokus' > .fokus-local
 ./scripts/install-local.sh
 ```
 
-Das Skript baut die App, legt sie nach `/Applications/Fokus.app` und richtet einen Autostart ein, der Fokus nach einem Absturz neu startet. Danach Fokus öffnen, unter Einstellungen → Websites deinen Browser verbinden und die macOS-Abfrage erlauben.
+The script builds the app, puts it in `/Applications/Fokus.app` and sets up a launch agent that restarts Fokus after a crash. Your own bundle ID keeps the browser permission across rebuilds.
 
-Eine eigene App-Kennung in `.fokus-local` sorgt dafür, dass macOS die Browser-Freigabe bei Updates behält.
+```bash
+swift test                                # core logic tests
+./scripts/snapshot.sh build/shots --demo  # every screen as PNG, with demo data
+./scripts/release.sh 0.3.0                # DMG plus signed update archive in dist/0.3.0
+```
 
-**Updaten:** `git pull` und `./scripts/install-local.sh` nochmal ausführen.
+The core (sessions, rules, categories, reports) lives in `Sources/ZoneCore` and is tested. The app is in `Sources/Zone`, Fokus-specific parts in `Sources/Zone/Local`.
 
-**Entfernen:**
+Coming from ActivityWatch? `python3 scripts/import-activitywatch.py` imports your history once.
+
+**Uninstall** (self-built):
 
 ```bash
 launchctl bootout gui/$(id -u)/$(grep -o '=.*' .fokus-local | cut -c2-)
@@ -96,33 +121,12 @@ rm ~/Library/LaunchAgents/$(grep -o '=.*' .fokus-local | cut -c2-).plist
 rm -rf /Applications/Fokus.app
 ```
 
-Deine Daten in `~/Library/Application Support/Fokus/` löschst du bei Bedarf selbst.
+## Credits and license
 
-**Von ActivityWatch umsteigen:** Läuft ActivityWatch bei dir, holt `python3 scripts/import-activitywatch.py` die Historie einmalig rüber.
+Fokus is based on [Zone](https://github.com/morajabi/zone) by Mo Rajabi, which brought sessions, schedules and tab redirection. Fokus adds time tracking, reports, categories, unlock friction, Hard Mode, the MCP server, the in-app assistant, the installer and signed updates. Zone's original README is in [docs/zone-README.md](docs/zone-README.md).
 
-## Grenzen
+MIT License, see [LICENSE](LICENSE).
 
-- Die Sperre liest Tab-Adressen und leitet um. Sie greift, solange Fokus läuft, und Firefox lässt sich nur als ganze App sperren.
-- Ein Netzwerkfilter, der wirklich jeden Browser erfasst, ist im Code angelegt, braucht aber einen bezahlten Apple-Developer-Account und ist in dieser Version aus.
-- Wer Admin ist und es darauf anlegt, kommt drum herum. Fokus soll Reibung erzeugen, kein Gefängnis sein.
-- Getestet auf Apple Silicon mit macOS 27 und Chrome. Safari und Edge sind unterstützt, aber weniger getestet.
+---
 
-## Entwicklung
-
-```bash
-swift test                                # Tests der Kernlogik
-./scripts/install-local.sh                # bauen und installieren
-./scripts/snapshot.sh build/shots --demo  # alle Seiten als PNG, mit Beispieldaten
-```
-
-Der Kern (Sitzungen, Regeln, Kategorien, Auswertung) liegt in `Sources/ZoneCore` und ist getestet. Die App liegt in `Sources/Zone`, Fokus-eigene Teile in `Sources/Zone/Local`.
-
-## Herkunft und Lizenz
-
-Fokus basiert auf [Zone](https://github.com/morajabi/zone) von Mo Rajabi, das Sitzungen, Zeitpläne und die Tab-Umleitung mitbringt. Die ursprüngliche README liegt in [docs/zone-README.md](docs/zone-README.md).
-
-MIT-Lizenz, siehe [LICENSE](LICENSE).
-
-## Weitergeben und Updates
-
-`scripts/release.sh 0.3.0` baut `dist/0.3.0/Fokus-0.3.0.dmg` (zum Weitergeben) und das signierte Update-Archiv. Mit `--publish` landet beides als Release in `Jnooo-cloud/fokus-releases`. Installierte Apps prüfen dort alle 6 Stunden und bieten das Update mit einem Klick an. Der Signaturschlüssel liegt im Schlüsselbund (`swift scripts/update-key.swift public`), ohne ihn lehnen installierte Apps Updates ab. Beim ersten Start führt ein Onboarding durch Browser-Freigabe, erste Sperrliste und Autostart.
+**Deutsch:** Fokus ist ein lokaler Website-Blocker und Zeit-Tracker für den Mac, ohne Konto, ohne Cloud, ohne Browser-Extension. DMG aus dem [neuesten Release](https://github.com/Jnooo-cloud/fokus/releases/latest) öffnen, Fokus in Programme ziehen, öffnen, Meldung mit „Fertig“ schließen, dann Systemeinstellungen → Datenschutz & Sicherheit → „Dennoch öffnen“. Den Rest erklärt die App, auf Deutsch, wenn dein Mac auf Deutsch läuft.

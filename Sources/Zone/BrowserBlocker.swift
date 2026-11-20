@@ -162,14 +162,44 @@ private actor BrowserWorker {
     private var lastFailure: [String: String] = [:]
     private var redirects: [String] = []
 
+    /// The last page read per browser. A busy browser (a heavy tab, a video call) can miss the 1 s reply
+    /// window; for a short while that time still goes to the page it was on instead of the plain browser.
+    private var lastPage: [String: (host: String, title: String?, at: Date)] = [:]
+    static let staleLimit: TimeInterval = 60
+
     /// Private windows are skipped, so they count as plain browser time.
     func activePage(_ browser: SupportedBrowser, pid: pid_t, withTitle: Bool) -> (host: String, title: String?)? {
         let target = NSAppleEventDescriptor(processIdentifier: pid)
-        guard let window = try? elements(get(all(browser.windowClass), target: target)).first else { return nil }
-        if (try? get(property("mode", of: window), target: target).stringValue) == "incognito" { return nil }
+        var window: NSAppleEventDescriptor
+        var address: String?
+        do {
+            let windows = try elements(get(all(browser.windowClass), target: target))
+            guard let first = windows.first else { trace(browser, "no window"); return remember(nil, browser) }
+            window = first
+            if (try? get(property("mode", of: window), target: target).stringValue) == "incognito" { return remember(nil, browser) }
+            address = try get(property(browser.urlProperty, of: property(browser.activeTabProperty, of: window)), target: target).stringValue
+            // A floating video window (Meet's picture in picture during a call) sits on top as an empty
+            // about:blank window. The window behind it is the one being worked in.
+            if address == "about:blank", let next = windows.dropFirst().prefix(3).first(where: { candidate in
+                (try? get(property(browser.urlProperty, of: property(browser.activeTabProperty, of: candidate)), target: target).stringValue) != "about:blank"
+            }) {
+                window = next
+                if (try? get(property("mode", of: window), target: target).stringValue) == "incognito" { return remember(nil, browser) }
+                address = try get(property(browser.urlProperty, of: property(browser.activeTabProperty, of: window)), target: target).stringValue
+                trace(browser, "skipped about:blank window, using " + String((address ?? "nil").prefix(40)))
+            }
+        } catch {
+            guard let last = lastPage[browser.id], Date().timeIntervalSince(last.at) < Self.staleLimit else {
+                trace(browser, "read failed \((error as NSError).code), no recent page"); return nil
+            }
+            trace(browser, "read failed \((error as NSError).code), kept \(last.host)")
+            return (last.host, last.title)
+        }
         let tab = property(browser.activeTabProperty, of: window)
-        guard let address = try? get(property(browser.urlProperty, of: tab), target: target).stringValue,
-              let url = URL(string: address), ["http", "https"].contains(url.scheme ?? ""), let host = url.host?.lowercased() else { return nil }
+        guard let address, let url = URL(string: address), ["http", "https"].contains(url.scheme ?? ""),
+              let host = url.host?.lowercased() else {
+            trace(browser, "no web address: " + String((address ?? "nil").prefix(40))); return remember(nil, browser)
+        }
         var title: String?
         if withTitle, let raw = try? get(property("pnam", of: tab), target: target).stringValue {
             // Some extensions append the full address to the title; only the title itself is kept.
@@ -177,7 +207,26 @@ private actor BrowserWorker {
             let trimmed = cleaned.trimmingCharacters(in: .whitespacesAndNewlines)
             title = trimmed.isEmpty ? nil : String(trimmed.prefix(140))
         }
-        return (host.hasPrefix("www.") ? String(host.dropFirst(4)) : host, title)
+        return remember((host.hasPrefix("www.") ? String(host.dropFirst(4)) : host, title), browser)
+    }
+
+    /// Why a read gave no domain, in tracking.log. Only changes are written, so the file stays small.
+    private var lastTrace = ""
+    private func trace(_ browser: SupportedBrowser, _ reason: String) {
+        guard reason != lastTrace else { return }
+        lastTrace = reason
+        let url = FokusPaths.data.appendingPathComponent("tracking.log")
+        let entry = Data("\(Date().formatted(date: .numeric, time: .standard)) \(browser.id): \(reason)\n".utf8)
+        if (try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? Int ?? 0) ?? 0 > 500_000 { try? FileManager.default.removeItem(at: url) }
+        guard let file = try? FileHandle(forWritingTo: url) else { try? entry.write(to: url); return }
+        defer { try? file.close() }
+        _ = try? file.seekToEnd()
+        try? file.write(contentsOf: entry)
+    }
+
+    private func remember(_ page: (host: String, title: String?)?, _ browser: SupportedBrowser) -> (host: String, title: String?)? {
+        if let page { lastPage[browser.id] = (page.host, page.title, Date()); lastTrace = "" } else { lastPage[browser.id] = nil }
+        return page
     }
 
     func drainRedirects() -> [String] {
