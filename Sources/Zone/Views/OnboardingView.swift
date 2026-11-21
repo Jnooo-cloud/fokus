@@ -2,7 +2,8 @@ import AppKit
 import SwiftUI
 import ZoneCore
 
-/// First launch: walks through the browser permission, a first block list and the login item,
+/// First launch: walks through the browser permission, a first block list, how a day with Fokus works
+/// and the login item,
 /// so the app works without reading any instructions.
 struct OnboardingView: View {
     @Bindable var model: ZoneModel
@@ -16,7 +17,7 @@ struct OnboardingView: View {
     @State private var useSchedule = false
     @State private var startAtLogin = true
 
-    private let steps = 4
+    private let steps = 5
 
     var body: some View {
         VStack(spacing: 0) {
@@ -31,6 +32,7 @@ struct OnboardingView: View {
                 case 0: welcome
                 case 1: browsers
                 case 2: blockList
+                case 3: howTo
                 default: finish
                 }
             }
@@ -158,6 +160,23 @@ struct OnboardingView: View {
         }
     }
 
+    private var howTo: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            title(L("So läuft ein Tag mit Fokus", "A day with Fokus"),
+                  L("Die Zeiterfassung läuft ab jetzt von selbst. Gesperrt wird nur, wenn du es startest.", "Time tracking runs on its own from now on. Blocking only happens when you start it."))
+            VStack(alignment: .leading, spacing: 14) {
+                guide("play.circle", L("Sitzung starten", "Start a session"),
+                      L("Unter Fokus wählst du Sperrliste und Dauer. Flexibel lässt sich beenden, Commit nicht, Hard Mode sperrt auch das Beenden der App.", "Under Focus you pick a block list and a duration. Flexible can be ended early, Commit can’t, Hard Mode also blocks quitting the app."))
+                guide("hand.raised", L("Gesperrte Seite geöffnet", "Opening a blocked site"),
+                      L("Der Tab springt auf eine Sperrseite. Brauchst du die Seite wirklich, gibst du unter Entsperren einen Grund an und wartest kurz.", "The tab jumps to a block page. If you really need the site, give a reason under Unlock and wait a moment."))
+                guide("chart.bar", L("Sehen, wohin die Zeit ging", "See where the time went"),
+                      L("Überblick zeigt den heutigen Tag, der Wochenbericht deine größten Zeitfresser. Unter Kategorien legst du fest, was als Arbeit zählt.", "Overview shows today, the Weekly Report your biggest time sinks. Under Categories you decide what counts as work."))
+                guide("bubble.left.and.text.bubble.right", L("Claude fragen", "Ask Claude"),
+                      L("Im Tab Assistent beantwortet Claude Fragen zu deinen Zahlen und schlägt Änderungen vor. Dafür muss Claude Code installiert sein.", "In the Assistant tab Claude answers questions about your numbers and suggests changes. This needs Claude Code installed."))
+            }.arcCard(padding: 16)
+        }
+    }
+
     private var finish: some View {
         VStack(alignment: .leading, spacing: 16) {
             title(L("Fast fertig", "Almost done"),
@@ -182,6 +201,16 @@ struct OnboardingView: View {
         VStack(alignment: .leading, spacing: 6) {
             Text(text).font(.system(size: 26, weight: .semibold)).tracking(-0.8).foregroundStyle(Arc.ink)
             Text(detail).font(.system(size: 13)).foregroundStyle(Arc.secondary).fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private func guide(_ icon: String, _ head: String, _ text: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 10) {
+            Image(systemName: icon).foregroundStyle(Arc.work).frame(width: 18)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(head).font(.system(size: 13.5, weight: .semibold)).foregroundStyle(Arc.ink)
+                Text(text).font(.system(size: 12.5)).foregroundStyle(Arc.secondary).fixedSize(horizontal: false, vertical: true)
+            }
         }
     }
 

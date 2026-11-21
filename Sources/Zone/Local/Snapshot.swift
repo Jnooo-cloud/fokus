@@ -22,7 +22,7 @@ enum Snapshot {
             }
             if ProcessInfo.processInfo.environment["FOKUS_SNAPSHOT_ONBOARDING"] != nil {
                 model.showOnboarding = true
-                for step in 0..<4 { model.onboardingStep = step; await capture("onboarding-\(step + 1)") }
+                for step in 0..<5 { model.onboardingStep = step; await capture("onboarding-\(step + 1)") }
                 exit(0)
             }
             await capture("dashboard")

@@ -38,7 +38,7 @@ func parseDay(_ value: Any?, fallback: Date) throws -> Date {
     guard let text = value as? String, !text.isEmpty else { return calendar.startOfDay(for: fallback) }
     var parser = Date.ISO8601FormatStyle().year().month().day()
     parser.timeZone = .autoupdatingCurrent
-    guard let date = try? parser.parse(text) else { throw ToolError(message: "Datum \(text) nicht lesbar, erwartet YYYY-MM-DD.") }
+    guard let date = try? parser.parse(text) else { throw ToolError(message: "Could not read date \(text), expected YYYY-MM-DD.") }
     return calendar.startOfDay(for: date)
 }
 
@@ -61,22 +61,35 @@ struct Context {
     }
 }
 
+/// Ratings are stored in German on disk; clients get English.
+func rating(_ value: UsageCategory) -> String {
+    switch value {
+    case .work: "work"
+    case .neutral: "neutral"
+    case .distraction: "distraction"
+    }
+}
+
 func totals(_ value: UsageTotals) -> [String: Any] {
-    ["aktiv_min": minutes(value.total), "arbeit_min": minutes(value.work), "neutral_min": minutes(value.neutral),
-     "ablenkung_min": minutes(value.distraction), "fokus_score_prozent": value.score]
+    ["active_min": minutes(value.total), "work_min": minutes(value.work), "neutral_min": minutes(value.neutral),
+     "distraction_min": minutes(value.distraction), "focus_score_percent": value.score]
 }
 
 func items(_ summary: UsageSummary, config: CategoryConfig, limit: Int) -> [[String: Any]] {
     summary.items.prefix(limit).map { item in
-        ["name": item.name, "typ": item.isSite ? "website" : "app", "minuten": minutes(item.seconds),
-         "wertung": item.category.rawValue, "kategorie": config.path(item.groupID)]
+        ["name": item.name, "type": item.isSite ? "website" : "app", "minutes": minutes(item.seconds),
+         "rating": rating(item.category), "category": config.path(item.groupID)]
     }
 }
 
 func groups(_ summary: UsageSummary, config: CategoryConfig) -> [[String: Any]] {
     summary.byGroup.compactMap { id, seconds in
-        seconds >= 60 ? ["kategorie": config.path(id), "minuten": minutes(seconds)] : nil
-    }.sorted { ($0["minuten"] as? Int ?? 0) > ($1["minuten"] as? Int ?? 0) }
+        seconds >= 60 ? ["category": config.path(id), "minutes": minutes(seconds)] : nil
+    }.sorted { ($0["minutes"] as? Int ?? 0) > ($1["minutes"] as? Int ?? 0) }
+}
+
+func byHour(_ seconds: [Double]) -> [String: Int] {
+    Dictionary(uniqueKeysWithValues: seconds.enumerated().filter { $0.element >= 60 }.map { (String($0.offset), minutes($0.element)) })
 }
 
 func attempts() -> [String: [String: Int]] {
@@ -85,30 +98,32 @@ func attempts() -> [String: [String: Int]] {
     return defaults?.dictionary(forKey: "blockedAttempts") as? [String: [String: Int]] ?? [:]
 }
 
+/// Argument by its English name, or the German one older setups still send.
+func arg(_ args: [String: Any], _ name: String, _ legacy: String) -> Any? { args[name] ?? args[legacy] }
+
 // MARK: Tools
 
 func usageRange(_ args: [String: Any]) throws -> Any {
     let context = Context()
     let today = calendar.startOfDay(for: Date())
-    let end = try parseDay(args["bis"], fallback: today)
-    let start = try parseDay(args["von"], fallback: calendar.date(byAdding: .day, value: -6, to: end) ?? end)
-    guard start <= end else { throw ToolError(message: "von liegt nach bis.") }
+    let end = try parseDay(arg(args, "to", "bis"), fallback: today)
+    let start = try parseDay(arg(args, "from", "von"), fallback: calendar.date(byAdding: .day, value: -6, to: end) ?? end)
+    guard start <= end else { throw ToolError(message: "from is after to.") }
     let span = dates(from: start, to: end)
     let loaded = span.map { usage.load($0) }
     let summary = context.summary(loaded)
     let perDay = zip(span, loaded).map { date, value -> [String: Any] in
-        ["datum": day(date), "wochentag": date.formatted(.dateTime.weekday(.wide).locale(Locale(identifier: "de_DE")))]
+        ["date": day(date), "weekday": date.formatted(.dateTime.weekday(.wide).locale(Locale(identifier: "en_US")))]
             .merging(totals(context.summary([value]).totals)) { a, _ in a }
     }
     return [
-        "zeitraum": ["von": day(start), "bis": day(end)],
-        "summe": totals(summary.totals),
-        "tage": perDay,
-        "nach_kategorie": groups(summary, config: context.config),
-        "top_apps_und_websites": items(summary, config: context.config, limit: Int(args["limit"] as? Double ?? 25)),
-        "ablenkung_nach_stunde_min": Dictionary(uniqueKeysWithValues: summary.distractionByHour.enumerated()
-            .filter { $0.element >= 60 }.map { (String($0.offset), minutes($0.element)) }),
-        "hinweis": "Aktive Zeit ohne Pausen über 3 Minuten. Fokus-Score = Arbeit / (Arbeit + Ablenkung).",
+        "range": ["from": day(start), "to": day(end)],
+        "total": totals(summary.totals),
+        "days": perDay,
+        "by_category": groups(summary, config: context.config),
+        "top_apps_and_websites": items(summary, config: context.config, limit: Int(args["limit"] as? Double ?? 25)),
+        "distraction_by_hour_min": byHour(summary.distractionByHour),
+        "note": "Active time, without breaks over 3 minutes. Focus score = work / (work + distraction).",
     ]
 }
 
@@ -117,125 +132,181 @@ func today(_ args: [String: Any]) throws -> Any {
     let date = calendar.startOfDay(for: Date())
     let summary = context.summary([usage.load(date)])
     let hours = summary.byHour.enumerated().filter { $0.element.total >= 60 }.map { hour, value -> [String: Any] in
-        ["stunde": hour, "arbeit_min": minutes(value.work), "neutral_min": minutes(value.neutral), "ablenkung_min": minutes(value.distraction)]
+        ["hour": hour, "work_min": minutes(value.work), "neutral_min": minutes(value.neutral), "distraction_min": minutes(value.distraction)]
     }
     let active = SessionEngine.activeSessions(in: context.doc, at: Date()).map { session -> [String: Any] in
-        ["name": session.name, "bis": session.endsAt.formatted(date: .omitted, time: .shortened), "streng": session.isStrict,
-         "gesperrt": session.blockList.blocksEverything ? ["alles außer Ausnahmen"] : session.blockList.domains]
+        ["name": session.name, "until": session.endsAt.formatted(date: .omitted, time: .shortened), "strict": session.isStrict,
+         "blocked": session.blockList.blocksEverything ? ["everything except the exceptions"] : session.blockList.domains]
     }
     return [
-        "datum": day(date),
-        "summe": totals(summary.totals),
-        "stunden": hours,
-        "nach_kategorie": groups(summary, config: context.config),
-        "top_apps_und_websites": items(summary, config: context.config, limit: 20),
-        "laufende_sitzungen": active,
-        "hard_mode_bis": context.doc.hardMode.map { $0.until.formatted(date: .omitted, time: .shortened) } ?? "aus",
-        "entsperrt_heute": SessionEngine.unlocksToday(in: context.doc, at: Date()),
-        "sperrversuche_heute": attempts()[day(date)] ?? [:],
+        "date": day(date),
+        "total": totals(summary.totals),
+        "hours": hours,
+        "by_category": groups(summary, config: context.config),
+        "top_apps_and_websites": items(summary, config: context.config, limit: 20),
+        "running_sessions": active,
+        "hard_mode_until": context.doc.hardMode.map { $0.until.formatted(date: .omitted, time: .shortened) } ?? "off",
+        "unlocks_today": SessionEngine.unlocksToday(in: context.doc, at: Date()),
+        "blocked_attempts_today": attempts()[day(date)] ?? [:],
     ]
 }
 
 func weekReport(_ args: [String: Any]) throws -> Any {
     let context = Context()
-    let offset = Int(args["wochen_zurueck"] as? Double ?? 0)
+    let offset = Int(arg(args, "weeks_back", "wochen_zurueck") as? Double ?? 0)
     guard let thisWeek = calendar.dateInterval(of: .weekOfYear, for: Date())?.start,
-          let start = calendar.date(byAdding: .day, value: -7 * offset, to: thisWeek) else { throw ToolError(message: "Woche nicht berechenbar.") }
+          let start = calendar.date(byAdding: .day, value: -7 * offset, to: thisWeek) else { throw ToolError(message: "Could not work out the week.") }
     let current = context.summary((0..<7).compactMap { calendar.date(byAdding: .day, value: $0, to: start) }.map { usage.load($0) })
     let previous = context.summary((1...7).compactMap { calendar.date(byAdding: .day, value: -$0, to: start) }.map { usage.load($0) })
     let end = start.addingTimeInterval(7 * 86400)
     let unlocks = context.doc.unlockEntries.filter { $0.date >= start && $0.date < end }
     let advice = WeekAdvice.suggestions(current: current, previous: previous, unlocks: unlocks.count, blocked: context.blocked)
     return [
-        "woche": ["von": day(start), "bis": day(end.addingTimeInterval(-1))],
-        "diese_woche": totals(current.totals),
-        "vorwoche": totals(previous.totals),
-        "nach_kategorie": groups(current, config: context.config),
-        "top_ablenkungen": items(current, config: context.config, limit: 40).filter { ($0["wertung"] as? String) == UsageCategory.distraction.rawValue }.prefix(8).map { $0 },
-        "ablenkung_nach_stunde_min": Dictionary(uniqueKeysWithValues: current.distractionByHour.enumerated()
-            .filter { $0.element >= 60 }.map { (String($0.offset), minutes($0.element)) }),
-        "entsperrungen": unlocks.count,
-        "fokus_vorschlaege": advice.map(\.text),
+        "week": ["from": day(start), "to": day(end.addingTimeInterval(-1))],
+        "this_week": totals(current.totals),
+        "previous_week": totals(previous.totals),
+        "by_category": groups(current, config: context.config),
+        "top_distractions": items(current, config: context.config, limit: 40).filter { ($0["rating"] as? String) == "distraction" }.prefix(8).map { $0 },
+        "distraction_by_hour_min": byHour(current.distractionByHour),
+        "unlocks": unlocks.count,
+        "suggestions": advice.map(\.text),
     ]
 }
 
 func unlocks(_ args: [String: Any]) throws -> Any {
     let context = Context()
-    let days = min(30, max(1, Int(args["tage"] as? Double ?? 14)))
+    let days = min(30, max(1, Int(arg(args, "days", "tage") as? Double ?? 14)))
     let since = calendar.date(byAdding: .day, value: -days, to: Date()) ?? Date()
     let entries = context.doc.unlockEntries.filter { $0.date >= since }.map { entry -> [String: Any] in
-        ["zeit": entry.date.formatted(.iso8601), "was": entry.target ?? "alles", "minuten": entry.minutes, "grund": entry.reason]
+        ["time": entry.date.formatted(.iso8601), "what": entry.target ?? "everything", "minutes": entry.minutes, "reason": entry.reason]
     }
     let tries = attempts().filter { $0.key >= day(since) }
-    return ["entsperrungen": entries, "sperrversuche_pro_tag": tries,
-            "hinweis": "Sperrversuche zählen, wie oft eine gesperrte Seite geöffnet und umgeleitet wurde."]
+    return ["unlocks": entries, "blocked_attempts_per_day": tries,
+            "note": "Blocked attempts count how often a blocked page was opened and redirected."]
 }
 
 func setup(_ args: [String: Any]) throws -> Any {
     let context = Context()
     let lists = context.doc.blockLists.map { list -> [String: Any] in
-        ["name": list.name, "websites": list.domains, "ausnahmen": list.exceptions, "alles_sperren": list.blocksEverything,
+        ["name": list.name, "websites": list.domains, "exceptions": list.exceptions, "blocks_everything": list.blocksEverything,
          "apps": list.apps.map(\.name)]
     }
     let schedules = context.doc.schedules.map { schedule -> [String: Any] in
-        let names = ["", "So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"]
-        return ["name": schedule.name, "aktiv": schedule.isEnabled, "tage": schedule.weekdays.sorted().map { names[$0] },
-                "von": String(format: "%02d:%02d", schedule.startMinute / 60, schedule.startMinute % 60),
-                "bis": String(format: "%02d:%02d", schedule.endMinute / 60, schedule.endMinute % 60),
-                "liste": context.doc.blockLists.first { $0.id == schedule.blockListID }?.name ?? "?"]
+        let names = ["", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+        return ["name": schedule.name, "enabled": schedule.isEnabled, "days": schedule.weekdays.sorted().map { names[$0] },
+                "from": String(format: "%02d:%02d", schedule.startMinute / 60, schedule.startMinute % 60),
+                "to": String(format: "%02d:%02d", schedule.endMinute / 60, schedule.endMinute % 60),
+                "block_list": context.doc.blockLists.first { $0.id == schedule.blockListID }?.name ?? "?"]
     }
     let tree = context.config.tops.map { top -> [String: Any] in
-        ["name": top.name, "zaehlt_als": top.rating.rawValue, "unterkategorien": context.config.children(of: top.id).map(\.name)]
+        ["name": top.name, "counts_as": rating(top.rating), "subcategories": context.config.children(of: top.id).map(\.name)]
     }
     let rules = context.config.titleRules.map { rule -> [String: Any] in
-        ["website": rule.domain ?? "alle", "stichwort": rule.keyword, "kategorie": context.config.path(rule.groupID)]
+        ["website": rule.domain ?? "all", "keyword": rule.keyword, "category": context.config.path(rule.groupID)]
     }
     let settings = context.doc.unlockSettings
-    return ["sperrlisten": lists, "zeitplaene": schedules, "kategorien": tree, "titel_regeln": rules,
-            "entsperren": ["erste_wartezeit_s": settings.baseDelay, "zuschlag_s": settings.stepDelay,
-                           "limit_pro_tag": settings.dailyLimit, "grund_noetig": settings.requiresReason]]
+    return ["block_lists": lists, "schedules": schedules, "categories": tree, "title_rules": rules,
+            "unlocking": ["first_wait_s": settings.baseDelay, "added_wait_per_unlock_s": settings.stepDelay,
+                          "daily_limit": settings.dailyLimit, "reason_required": settings.requiresReason]]
 }
 
 func pageTitles(_ args: [String: Any]) throws -> Any {
     let context = Context()
     let today = calendar.startOfDay(for: Date())
-    let end = try parseDay(args["bis"], fallback: today)
-    let start = try parseDay(args["von"], fallback: calendar.date(byAdding: .day, value: -6, to: end) ?? end)
+    let end = try parseDay(arg(args, "to", "bis"), fallback: today)
+    let start = try parseDay(arg(args, "from", "von"), fallback: calendar.date(byAdding: .day, value: -6, to: end) ?? end)
     let summary = context.summary(dates(from: start, to: end).map { usage.load($0) })
     let filter = (args["website"] as? String)?.lowercased()
     let result = summary.titles.filter { filter == nil || DomainRule.matches(host: $0.key, domain: filter!) }.map { domain, pages -> [String: Any] in
-        ["website": domain, "seiten": pages.prefix(20).map { page -> [String: Any] in
-            ["titel": page.title, "minuten": minutes(page.seconds),
-             "kategorie_per_regel": context.config.titleMatch(domain: domain, title: page.title).map { context.config.path($0) } ?? "-"]
+        ["website": domain, "pages": pages.prefix(20).map { page -> [String: Any] in
+            ["title": page.title, "minutes": minutes(page.seconds),
+             "category_by_rule": context.config.titleMatch(domain: domain, title: page.title).map { context.config.path($0) } ?? "-"]
         }]
     }
-    if result.isEmpty { return ["hinweis": "Keine Seitentitel gespeichert. Die Titel-Erfassung ist in Fokus unter Einstellungen → Zeiterfassung optional."] }
-    return ["zeitraum": ["von": day(start), "bis": day(end)], "titel": result]
+    if result.isEmpty { return ["note": "No page titles stored. Recording titles is optional, in Fokus under Settings → Time tracking."] }
+    return ["range": ["from": day(start), "to": day(end)], "titles": result]
 }
 
 let dateRange: [String: Any] = [
     "type": "object",
     "properties": [
-        "von": ["type": "string", "description": "Erster Tag, YYYY-MM-DD. Standard: 6 Tage vor bis."],
-        "bis": ["type": "string", "description": "Letzter Tag, YYYY-MM-DD. Standard: heute."],
-        "limit": ["type": "number", "description": "Wie viele Apps und Websites, Standard 25."],
+        "from": ["type": "string", "description": "First day, YYYY-MM-DD. Default: 6 days before to."],
+        "to": ["type": "string", "description": "Last day, YYYY-MM-DD. Default: today."],
+        "limit": ["type": "number", "description": "How many apps and websites, default 25."],
     ],
 ]
 
-let tools: [(name: String, description: String, schema: [String: Any], run: ([String: Any]) throws -> Any)] = [
-    ("fokus_heute", "Heutige Bildschirmzeit aus der Mac-App Fokus: Summen, Fokus-Score, Stunden, Kategorien, Top-Apps und -Websites, laufende Sperren, Entsperrungen und Sperrversuche.",
+/// `legacy` is the German name from before 0.3, still accepted so existing setups keep working.
+let tools: [(name: String, legacy: String, description: String, schema: [String: Any], run: ([String: Any]) throws -> Any)] = [
+    ("fokus_today", "fokus_heute", "Today's screen time from the Mac app Fokus: totals, focus score, hour by hour, categories, top apps and websites, running focus sessions, unlocks and blocked attempts.",
      ["type": "object", "properties": [:]], today),
-    ("fokus_nutzung", "Bildschirmzeit für einen Zeitraum: Summen, Tage, Kategorien, Top-Apps und -Websites, Ablenkung nach Uhrzeit.", dateRange, usageRange),
-    ("fokus_wochenbericht", "Wochenbericht Mo bis So im Vergleich zur Vorwoche, mit größten Ablenkungen und Vorschlägen.",
-     ["type": "object", "properties": ["wochen_zurueck": ["type": "number", "description": "0 = diese Woche, 1 = letzte Woche."]]], weekReport),
-    ("fokus_entsperrungen", "Wann und warum der Nutzer gesperrte Seiten freigegeben hat, plus Sperrversuche pro Tag.",
-     ["type": "object", "properties": ["tage": ["type": "number", "description": "Rückblick in Tagen, 1 bis 30, Standard 14."]]], unlocks),
-    ("fokus_einstellungen", "Sperrlisten, Zeitpläne, Kategorien, Titel-Regeln und Entsperr-Regeln, wie sie in Fokus eingestellt sind.",
+    ("fokus_usage", "fokus_nutzung", "Screen time for a date range: totals, each day, categories, top apps and websites, distraction by hour of day.", dateRange, usageRange),
+    ("fokus_weekly_report", "fokus_wochenbericht", "Weekly report, Monday to Sunday, compared with the week before, with the biggest distractions and suggestions.",
+     ["type": "object", "properties": ["weeks_back": ["type": "number", "description": "0 = this week, 1 = last week."]]], weekReport),
+    ("fokus_unlocks", "fokus_entsperrungen", "When and why the user unlocked blocked sites, plus blocked attempts per day.",
+     ["type": "object", "properties": ["days": ["type": "number", "description": "How many days back, 1 to 30, default 14."]]], unlocks),
+    ("fokus_settings", "fokus_einstellungen", "Block lists, schedules, categories, page title rules and unlock rules as set up in Fokus.",
      ["type": "object", "properties": [:]], setup),
-    ("fokus_seitentitel", "Zeit pro Seitentitel einzelner Websites, nur wenn die Titel-Erfassung an ist.",
+    ("fokus_page_titles", "fokus_seitentitel", "Time per page title on individual websites. Only has data if the user turned on page titles.",
      ["type": "object", "properties": [
-        "von": ["type": "string", "description": "YYYY-MM-DD"], "bis": ["type": "string", "description": "YYYY-MM-DD"],
-        "website": ["type": "string", "description": "Optional, z. B. youtube.com"]]], pageTitles),
+        "from": ["type": "string", "description": "YYYY-MM-DD"], "to": ["type": "string", "description": "YYYY-MM-DD"],
+        "website": ["type": "string", "description": "Optional, e.g. youtube.com"]]], pageTitles),
+]
+
+// MARK: Guidance for the model
+
+let instructions = """
+Fokus is a local macOS app that blocks distracting websites and apps and records screen time. This server gives read-only access to its data. You cannot start sessions, change block lists or unlock anything; suggest the change and tell the user where to make it in the app (Focus, Block Lists, Schedules, Unlock, Categories, Settings).
+
+What you can see:
+- fokus_today: today so far, hour by hour, plus running sessions, Hard Mode, unlocks and blocked attempts.
+- fokus_usage: any date range, per day, per category, top apps and websites, distraction by hour of day.
+- fokus_weekly_report: Monday to Sunday against the week before, biggest distractions, Fokus' own suggestions.
+- fokus_unlocks: each unlock with time, target, length and the reason the user typed, plus how often blocked pages were opened.
+- fokus_settings: block lists, schedules, categories and unlock rules. Read this before recommending a change, so you don't suggest something that is already set up.
+- fokus_page_titles: time per page title. Empty unless the user turned titles on.
+
+How to read it: all times are minutes of active use. Idle time over 3 minutes and a locked screen are not counted. Every app and website is rated work, neutral or distraction by the user's categories. Focus score = work / (work + distraction), neutral is left out. Hours are 0 to 23 in local time. Websites are stored per domain, never as full URLs. Category names are the user's own and may be in German.
+
+Fetch the numbers before you answer, never estimate them. Days with very little active time say nothing about habits. Reply in the language the user writes in.
+"""
+
+let coachRules = """
+Rules: use the real numbers from the fokus tools, never guess. If there are fewer than 3 days with data, say so and treat everything as provisional. Ignore days with under 30 active minutes when you look for habits. No lecturing. You can only read; I make the changes myself in the Fokus app, so tell me exactly where (Focus, Block Lists, Schedules, Unlock, Categories, Settings). Reply in the language I write in.
+"""
+
+let prompts: [(name: String, title: String, description: String, arguments: [[String: Any]], text: ([String: Any]) -> String)] = [
+    ("focus_coach", "Focus coach", "Finds where and when your focus breaks and gives up to three concrete changes to make in Fokus.",
+     [["name": "goal", "description": "What you want to get better at, e.g. 'no YouTube before noon'. Optional.", "required": false]],
+     { args in
+        let goal = (args["goal"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? "less time lost to distraction and longer stretches of real work"
+        return """
+        Be my focus coach, based on my Fokus data. My goal: \(goal).
+
+        1. Get fokus_weekly_report for this week and last week (weeks_back 0 and 1), fokus_usage for the last 14 days, fokus_unlocks and fokus_settings.
+        2. Look for the pattern behind the totals: on which weekdays and at which hours the distraction piles up, which two or three sites or apps make up most of it, what reasons I gave when I unlocked, and when blocked attempts spike.
+        3. Hold that against my setup. Are the biggest time sinks on a block list at all? Does a schedule cover the hours where I drift? Is unlocking too easy?
+        4. Give me at most three changes. Each one must be specific enough to do in two minutes: which block list, which schedule with days and hours, Flexible, Commit or Hard Mode.
+        5. Name the one number we look at next week to see whether it worked.
+
+        \(coachRules)
+        """
+     }),
+    ("weekly_review", "Weekly review", "A short review of your week: what went well, where the time went, one thing to change next week.",
+     [],
+     { _ in
+        """
+        Review my week with my Fokus data.
+
+        1. Get fokus_weekly_report for this week and last week (weeks_back 0 and 1) and fokus_unlocks for the last 7 days.
+        2. Tell me in this order: active time and focus score against last week, my best day and what was different about it, my three biggest time sinks with minutes, and the hours of the day where I drift most.
+        3. End with one change for next week and the number that shows whether it worked.
+
+        Keep it under 200 words.
+
+        \(coachRules)
+        """
+     }),
 ]
 
 // MARK: JSON-RPC over stdio
@@ -256,16 +327,16 @@ func handle(_ request: [String: Any]) {
     switch method {
     case "initialize":
         reply(["protocolVersion": params["protocolVersion"] as? String ?? "2025-06-18",
-               "capabilities": ["tools": [String: Any]()],
-               "serverInfo": ["name": "fokus", "version": "0.1.0"],
-               "instructions": "Read-only Zugriff auf die lokale Bildschirmzeit- und Sperr-App Fokus. Zeiten sind in Minuten. Antworte auf Deutsch."])
+               "capabilities": ["tools": [String: Any](), "prompts": [String: Any]()],
+               "serverInfo": ["name": "fokus", "version": "0.3.0"],
+               "instructions": instructions])
     case "ping": reply([String: Any]())
     case "tools/list":
         reply(["tools": tools.map { ["name": $0.name, "description": $0.description, "inputSchema": $0.schema,
                                      "annotations": ["readOnlyHint": true]] }])
     case "tools/call":
-        guard let name = params["name"] as? String, let tool = tools.first(where: { $0.name == name }) else {
-            fail(-32602, "Unbekanntes Werkzeug"); return
+        guard let name = params["name"] as? String, let tool = tools.first(where: { $0.name == name || $0.legacy == name }) else {
+            fail(-32602, "Unknown tool"); return
         }
         do {
             let result = try tool.run(params["arguments"] as? [String: Any] ?? [:])
@@ -276,8 +347,16 @@ func handle(_ request: [String: Any]) {
         } catch {
             reply(["content": [["type": "text", "text": error.localizedDescription]], "isError": true])
         }
+    case "prompts/list":
+        reply(["prompts": prompts.map { ["name": $0.name, "title": $0.title, "description": $0.description, "arguments": $0.arguments] }])
+    case "prompts/get":
+        guard let name = params["name"] as? String, let prompt = prompts.first(where: { $0.name == name }) else {
+            fail(-32602, "Unknown prompt"); return
+        }
+        reply(["description": prompt.description,
+               "messages": [["role": "user", "content": ["type": "text", "text": prompt.text(params["arguments"] as? [String: Any] ?? [:])]]]])
     default:
-        if id != nil { fail(-32601, "Methode \(method) gibt es nicht") }
+        if id != nil { fail(-32601, "Method \(method) does not exist") }
     }
 }
 

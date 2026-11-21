@@ -48,7 +48,18 @@ Requires macOS 15 or later. Installed apps check for updates every 6 hours and i
 
 ## Talk to Claude about your screen time
 
-Fokus includes a read-only MCP server (`fokus-mcp`). Tools: `fokus_heute` (today), `fokus_nutzung` (usage), `fokus_wochenbericht` (weekly report), `fokus_entsperrungen` (unlocks), `fokus_einstellungen` (settings), `fokus_seitentitel` (page titles).
+Fokus includes a read-only MCP server (`fokus-mcp`). It tells the agent what it can see and how to read the numbers, so there is nothing to explain first.
+
+| Tool | What it returns |
+|---|---|
+| `fokus_today` | Today hour by hour, running sessions, unlocks, blocked attempts |
+| `fokus_usage` | Any date range: per day, per category, top apps and websites |
+| `fokus_weekly_report` | This week against last week, biggest distractions, suggestions |
+| `fokus_unlocks` | Every unlock with the reason you typed |
+| `fokus_settings` | Block lists, schedules, categories, unlock rules |
+| `fokus_page_titles` | Time per page title, if you turned titles on |
+
+It also ships two prompts, `focus_coach` and `weekly_review`. In Claude Code they show up as `/mcp__fokus__focus_coach` and `/mcp__fokus__weekly_review`, in Claude Desktop under the + menu. The coach looks at when and where your focus breaks, checks that against your block lists and schedules, and gives you up to three changes to make.
 
 Claude Code:
 
@@ -66,6 +77,8 @@ Claude Desktop, in `~/Library/Application Support/Claude/claude_desktop_config.j
 ```
 
 If you built Fokus yourself, use the bundle ID from your `.fokus-local`.
+
+Prefer a skill? Copy [skills/fokus-coach](skills/fokus-coach) into `~/.claude/skills/`. It holds the same coaching playbook and works in any agent that reads `SKILL.md`.
 
 There is also a chat tab inside the app ("Assistant"). It runs your installed Claude Code in the background with only the Fokus MCP attached: no terminal, no file access, no changes. You need Claude Code installed (`npm install -g @anthropic-ai/claude-code`) and logged in once.
 

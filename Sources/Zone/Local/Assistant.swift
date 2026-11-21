@@ -22,7 +22,7 @@ final class AssistantStore {
     @ObservationIgnored private var buffer = Data()
     @ObservationIgnored private var errors = Data()
 
-    static let tools = ["fokus_heute", "fokus_nutzung", "fokus_wochenbericht", "fokus_entsperrungen", "fokus_einstellungen", "fokus_seitentitel"]
+    static let tools = ["fokus_today", "fokus_usage", "fokus_weekly_report", "fokus_unlocks", "fokus_settings", "fokus_page_titles"]
 
     var claudePath: String? { Self.findClaude() }
 
@@ -164,12 +164,12 @@ final class AssistantStore {
 
     private static func label(for tool: String) -> String {
         switch tool.replacingOccurrences(of: "mcp__fokus__", with: "") {
-        case "fokus_heute": L("deinen heutigen Tag", "your day")
-        case "fokus_nutzung": L("deine Nutzung", "your usage")
-        case "fokus_wochenbericht": L("deinen Wochenbericht", "your weekly report")
-        case "fokus_entsperrungen": L("deine Entsperrungen", "your unlocks")
-        case "fokus_einstellungen": L("deine Einstellungen", "your settings")
-        case "fokus_seitentitel": L("deine Seitentitel", "your page titles")
+        case "fokus_today": L("deinen heutigen Tag", "your day")
+        case "fokus_usage": L("deine Nutzung", "your usage")
+        case "fokus_weekly_report": L("deinen Wochenbericht", "your weekly report")
+        case "fokus_unlocks": L("deine Entsperrungen", "your unlocks")
+        case "fokus_settings": L("deine Einstellungen", "your settings")
+        case "fokus_page_titles": L("deine Seitentitel", "your page titles")
         default: L("deine Daten", "your data")
         }
     }
